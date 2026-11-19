@@ -22,8 +22,13 @@ import scoring
 ROOT = Path(__file__).parent
 GEOJSON_PATH = ROOT / "assets" / "geo" / "kelurahan_makassar.geojson"
 
-# Peran yang boleh melihat data pribadi lengkap (nama, KK, alamat)
-SENSITIVE_ROLES = ("superadmin", "admin", "admin_bappeda", "verifikator")
+# Peran yang boleh melihat data pribadi lengkap (kota vs ter-scope wilayah)
+CITY_SENSITIVE_ROLES = ("superadmin", "admin", "admin_bappeda")
+SENSITIVE_ROLES = (
+    "superadmin", "admin", "admin_bappeda", "verifikator",
+    "operator", "operator_kecamatan", "operator_kelurahan",
+    "petugas", "operator_rt_rw",
+)
 now_iso = lambda: datetime.now(timezone.utc).isoformat()  # noqa: E731
 
 RISK_ORDER = ["sangat_tinggi", "tinggi", "sedang", "rendah"]
@@ -70,28 +75,38 @@ class MonitoringUpdate(BaseModel):
 
 
 # Pembatasan wilayah akses data rumah tangga per peran (ditegakkan di backend)
-KECAMATAN_SCOPED = ("petugas", "operator_kecamatan")
-KELURAHAN_SCOPED = ("operator", "operator_kelurahan")
+KECAMATAN_SCOPED = ("operator", "operator_kecamatan")
+KELURAHAN_SCOPED = ("operator_kelurahan",)
 CITY_READ_ROLES = ("pimpinan", "admin_opd", "viewer")  # baca seluruh kota, data tersamar
 OPERATOR_RTRW = "operator_rt_rw"
+OPERATOR_RTRW_ROLES = ("operator_rt_rw", "petugas")
 
 
 def household_allowed(user: dict, doc: Dict[str, Any]) -> bool:
     """Cakupan wilayah untuk peran non-Operator RT/RW."""
+    import scope as scope_mod
     role = (user or {}).get("role")
     if role == "verifikator":
         # verifikator kecamatan hanya kecamatannya; wilayah "Kota Makassar" = seluruh kota
-        import scope as scope_mod
         return scope_mod.same_kecamatan(scope_mod.kecamatan_scope(user), doc.get("kecamatan"))
-    if role in SENSITIVE_ROLES or role in CITY_READ_ROLES:
+    if role in CITY_SENSITIVE_ROLES or role in CITY_READ_ROLES:
         return True
     wil = norm_name((user or {}).get("wilayah"))
-    if not wil:
-        return False
     if role in KECAMATAN_SCOPED:
-        return norm_name(doc.get("kecamatan")) == wil
+        if not wil:
+            return False
+        return scope_mod.same_kecamatan(user.get("wilayah"), doc.get("kecamatan"))
     if role in KELURAHAN_SCOPED:
-        return wil in (norm_name(doc.get("kelurahan")), norm_name(doc.get("kecamatan")))
+        kel_user = str((user or {}).get("kelurahan") or (user or {}).get("wilayah") or "").strip()
+        if not kel_user:
+            return False
+        if wil and not scope_mod.same_kecamatan(user.get("wilayah"), doc.get("kecamatan")):
+            return False
+        kode_u = str((user or {}).get("kode_kelurahan") or "").strip()
+        kode_d = str(doc.get("kode_kelurahan") or "").strip()
+        if kode_u and kode_d:
+            return kode_u == kode_d
+        return scope_mod.same_kelurahan(kel_user, doc.get("kelurahan"))
     return False
 
 
@@ -272,49 +287,77 @@ def build_router(db, current_user_dep, editor_dep, admin_dep) -> APIRouter:
         if not user:  # data per rumah tangga: wajib login staf (publik hanya agregat)
             raise HTTPException(status_code=401, detail="Data rumah tangga hanya untuk pengguna berwenang")
         allow = sensitive_allowed(user)
-        q = _hh_filter(kode_kecamatan, kode_kelurahan, desil, pbi_nas, pbi_pemda, risk_level)
-        if search:
-            s = str(search).strip()
-            if s.isdigit():
-                q["no_kk"] = {"$regex": re.escape(s)}
-            else:
-                q["kepala_keluarga"] = {"$regex": re.escape(s.upper())}
+        base_q = _hh_filter(kode_kecamatan, kode_kelurahan, desil, pbi_nas, pbi_pemda, risk_level)
         role = user.get("role")
-        if role == OPERATOR_RTRW:
-            # hanya sasaran yang ditugaskan (penugasan RT/RW atau KK sasaran sah)
+        if role in OPERATOR_RTRW_ROLES:
+            # hanya sasaran yang ditugaskan (penugasan RT/RW / kelurahan / KK sasaran sah)
             import verval as verval_mod
             pairs = await verval_mod.operator_households(db, user)
             docs_all = [h for h, _ in pairs if all(
-                (str(h.get(k)) == str(v)) if not isinstance(v, dict) else True for k, v in q.items())]
+                (str(h.get(k)) == str(v)) if not isinstance(v, dict) else True for k, v in base_q.items())]
             if search:
                 s = str(search).strip().upper()
-                docs_all = [h for h in docs_all if s in str(h.get("no_kk")) or s in str(h.get("kepala_keluarga") or "").upper()]
+                docs_all = [h for h in docs_all if (
+                    s in str(h.get("no_kk") or "")
+                    or s in str(h.get("nik") or "")
+                    or s in str(h.get("kepala_keluarga") or "").upper()
+                    or s in str(h.get("alamat") or "").upper()
+                )]
+            docs_all.sort(key=lambda d: d.get(sort_by) or 0, reverse=sort_dir < 0)
             total = len(docs_all)
             docs = docs_all[(page - 1) * size:(page - 1) * size + size]
             return {"total": total, "page": page, "size": size, "pages": max(1, math.ceil(total / size)),
-                    "masked": True, "cakupan": "sasaran_operator_rt_rw",
-                    "items": [mask_household(d, False) for d in docs]}
-        if role in KECAMATAN_SCOPED + KELURAHAN_SCOPED:
+                    "masked": False, "cakupan": "sasaran_operator_rt_rw",
+                    "items": [mask_household(d, True) for d in docs]}
+
+        q = dict(base_q)
+        digit_search = bool(search and str(search).strip().isdigit())
+        if search and not digit_search:
+            q["kepala_keluarga"] = {"$regex": re.escape(str(search).strip().upper())}
+        if role in KECAMATAN_SCOPED:
             wil = str(user.get("wilayah") or "").strip()
             if not wil:
                 return {"total": 0, "page": page, "size": size, "pages": 1, "masked": True,
                         "cakupan": "tanpa_wilayah", "items": []}
-            rx = {"$regex": "^" + re.escape(wil) + "$", "$options": "i"}
-            if role in KECAMATAN_SCOPED:
-                q["kecamatan"] = rx
-            else:
-                docs_all = [d for d in await db.households.find(q).to_list(60000) if household_allowed(user, d)]
-                docs_all.sort(key=lambda d: d.get(sort_by) or 0, reverse=sort_dir < 0)
-                total = len(docs_all)
-                docs = docs_all[(page - 1) * size:(page - 1) * size + size]
-                return {"total": total, "page": page, "size": size, "pages": max(1, math.ceil(total / size)),
-                        "masked": not allow, "cakupan": "wilayah_operator",
-                        "items": [mask_household(d, allow) for d in docs]}
-        elif not (role in SENSITIVE_ROLES or role in CITY_READ_ROLES):
+            q["kecamatan"] = {"$regex": "^" + re.escape(wil) + "$", "$options": "i"}
+        elif role in KELURAHAN_SCOPED:
+            kel_user = str(user.get("kelurahan") or user.get("wilayah") or "").strip()
+            if not kel_user:
+                return {"total": 0, "page": page, "size": size, "pages": 1, "masked": True,
+                        "cakupan": "tanpa_wilayah", "items": []}
+            docs_all = [d for d in await db.households.find(q).to_list(60000) if household_allowed(user, d)]
+            if digit_search:
+                s = str(search).strip()
+                docs_all = [d for d in docs_all if s in str(d.get("no_kk") or "") or s in str(d.get("nik") or "")]
+            docs_all.sort(key=lambda d: d.get(sort_by) or 0, reverse=sort_dir < 0)
+            total = len(docs_all)
+            docs = docs_all[(page - 1) * size:(page - 1) * size + size]
+            return {"total": total, "page": page, "size": size, "pages": max(1, math.ceil(total / size)),
+                    "masked": not allow, "cakupan": "wilayah_kelurahan",
+                    "items": [mask_household(d, allow) for d in docs]}
+        elif role == "verifikator":
+            import scope as scope_mod
+            sc = scope_mod.kecamatan_scope(user)
+            if sc:
+                q["kecamatan"] = {"$regex": "^" + re.escape(sc) + "$", "$options": "i"}
+        elif not (role in CITY_SENSITIVE_ROLES or role in CITY_READ_ROLES):
             raise HTTPException(status_code=403, detail="Peran Anda tidak berwenang melihat data rumah tangga")
-        total = await db.households.count_documents(q)
-        cursor = db.households.find(q).sort(sort_by, -1 if sort_dir < 0 else 1)
-        docs = await cursor.skip((page - 1) * size).limit(size).to_list(size)
+
+        if digit_search:
+            s_esc = re.escape(str(search).strip())
+            by_kk = await db.households.find({**q, "no_kk": {"$regex": s_esc}}).to_list(5000)
+            by_nik = await db.households.find({**q, "nik": {"$regex": s_esc}}).to_list(5000)
+            merged: Dict[str, dict] = {}
+            for d in by_kk + by_nik:
+                key = str(d.get("id") or d.get("_id") or d.get("no_kk"))
+                merged[key] = d
+            docs_all = sorted(merged.values(), key=lambda d: d.get(sort_by) or 0, reverse=sort_dir < 0)
+            total = len(docs_all)
+            docs = docs_all[(page - 1) * size:(page - 1) * size + size]
+        else:
+            total = await db.households.count_documents(q)
+            cursor = db.households.find(q).sort(sort_by, -1 if sort_dir < 0 else 1)
+            docs = await cursor.skip((page - 1) * size).limit(size).to_list(size)
         return {
             "total": total, "page": page, "size": size,
             "pages": max(1, math.ceil(total / size)),
@@ -329,7 +372,7 @@ def build_router(db, current_user_dep, editor_dep, admin_dep) -> APIRouter:
             raise HTTPException(status_code=401, detail="Data rumah tangga hanya untuk pengguna berwenang")
         doc = await db.households.find_one({"id": household_id})
         role = user.get("role")
-        if doc and role == OPERATOR_RTRW:
+        if doc and role in OPERATOR_RTRW_ROLES:
             import verval as verval_mod
             pens, sas = await verval_mod.operator_scope(db, user)
             ok = bool(verval_mod.dasar_akses(doc, pens, sas))
@@ -343,7 +386,8 @@ def build_router(db, current_user_dep, editor_dep, admin_dep) -> APIRouter:
                     "aksi": "akses_rumah_tangga_ditolak", "entitas": "households", "ref": household_id,
                     "detail": "di luar wilayah kewenangan", "status": "ditolak", "created_at": now_iso()})
             raise HTTPException(status_code=404, detail="Rumah tangga tidak ditemukan atau di luar wilayah kewenangan")
-        out = mask_household(doc, sensitive_allowed(user))
+        allow_detail = role in OPERATOR_RTRW_ROLES or sensitive_allowed(user)
+        out = mask_household(doc, allow_detail)
         if sensitive_allowed(user):
             await db.audit_logs.insert_one({
                 "id": str(uuid.uuid4()), "user": user.get("email"), "role": role,

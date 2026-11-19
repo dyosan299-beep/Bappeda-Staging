@@ -5,15 +5,19 @@ export { api };
 export const STATUS_LABEL: Record<string, string> = {
   belum_diverval: "Belum diverval",
   draft: "Draft",
+  menunggu_kelurahan: "Menunggu periksa Kelurahan",
+  menunggu_kecamatan: "Menunggu acc Kecamatan",
   terkirim: "Terkirim · menunggu pemeriksaan",
   perlu_perbaikan: "Perlu perbaikan",
-  disetujui: "Disetujui",
+  disetujui: "Disetujui Kecamatan",
   ditolak: "Ditolak",
 };
 
 export const STATUS_CLS: Record<string, string> = {
   belum_diverval: "bg-slate-100 text-slate-700 ring-slate-200",
   draft: "bg-amber-50 text-amber-900 ring-amber-200",
+  menunggu_kelurahan: "bg-sky-50 text-sky-900 ring-sky-200",
+  menunggu_kecamatan: "bg-indigo-50 text-indigo-900 ring-indigo-200",
   terkirim: "bg-sky-50 text-sky-900 ring-sky-200",
   perlu_perbaikan: "bg-orange-50 text-orange-900 ring-orange-300",
   disetujui: "bg-emerald-50 text-emerald-900 ring-emerald-200",
@@ -21,11 +25,18 @@ export const STATUS_CLS: Record<string, string> = {
 };
 
 export const STATUS_COLOR: Record<string, string> = {
-  draft: "#D97706", terkirim: "#0284C7", perlu_perbaikan: "#EA580C", disetujui: "#059669", ditolak: "#E11D48",
+  draft: "#D97706",
+  menunggu_kelurahan: "#0284C7",
+  menunggu_kecamatan: "#4F46E5",
+  terkirim: "#0284C7",
+  perlu_perbaikan: "#EA580C",
+  disetujui: "#059669",
+  ditolak: "#E11D48",
 };
 
 export const GPS_LABEL: Record<string, string> = {
   memenuhi: "Akurasi memenuhi target",
+  pin_manual: "Pin manual (disesuaikan di peta)",
   akurasi_rendah: "Akurasi belum memenuhi target",
   izin_ditolak: "Izin lokasi ditolak",
   tidak_tersedia: "GPS tidak tersedia",
@@ -103,6 +114,8 @@ export const INDIKATOR_PERLU_CATATAN = new Set<string>([
 export const DASAR_LABEL: Record<string, string> = {
   wilayah_petugas: "Wilayah petugas (Kelurahan · RW/RT)",
   penugasan_rt_rw: "Penugasan RT/RW",
+  kelurahan_tanpa_rtrw: "Kelurahan (RT/RW belum terisi)",
+  warga_baru: "Warga baru (usulan RT/RW)",
   sasaran_admin: "KK sasaran (ditetapkan admin)",
   lintas_wilayah: "Penugasan lintas wilayah",
 };

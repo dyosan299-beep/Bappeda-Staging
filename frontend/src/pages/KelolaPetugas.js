@@ -27,19 +27,26 @@ const STATUS = {
 };
 
 const ROLE_LABEL = {
-  superadmin: "Superadmin", admin: "Superadmin", operator: "Operator Kecamatan", verifikator: "Verifikator",
+  superadmin: "Superadmin", admin: "Superadmin", operator: "Kecamatan",
+  operator_kecamatan: "Kecamatan", operator_kelurahan: "Kelurahan", verifikator: "Verifikator",
   pimpinan: "Pimpinan", petugas: "Petugas RT/RW", operator_rt_rw: "Operator RT/RW", ngo: "NGO",
   admin_bappeda: "Admin Bappeda", admin_opd: "Admin OPD", viewer: "Viewer",
 };
 
-/** Peran yang dapat dibuat SUPERADMIN (petugas HANYA oleh operator kecamatan). */
+/** Peran yang dapat dibuat SUPERADMIN (petugas RT/RW dibuat oleh akun Kecamatan). */
 const SUPERADMIN_ROLE_OPTIONS = [
-  ["operator", "Operator Kecamatan (kelola petugas & input data wilayah)"],
+  ["operator", "Kecamatan (kelola RT/RW, Kelurahan, penugasan & persetujuan akhir Verval)"],
+  ["operator_kelurahan", "Kelurahan (periksa Verval tahap 1 kelurahan)"],
+  ["admin_bappeda", "Admin Bappeda (semua wilayah kota & persetujuan akhir)"],
   ["verifikator", "Verifikator (periksa data/Verval wilayah)"],
   ["pimpinan", "Pimpinan (lihat hasil & unduh laporan)"],
   ["superadmin", "Superadmin (akses penuh)"],
 ];
-const NEEDS_KECAMATAN = (role) => ["operator", "verifikator", "petugas"].includes(role);
+const KECAMATAN_ROLE_OPTIONS = [
+  ["petugas", "Petugas RT/RW (Verval & GeoTag lapangan)"],
+  ["operator_kelurahan", "Kelurahan (pemeriksa Verval tahap 1)"],
+];
+const NEEDS_KECAMATAN = (role) => ["operator", "operator_kecamatan", "operator_kelurahan", "verifikator", "petugas"].includes(role);
 const CITY = "Kota Makassar";
 
 const inputCls = "w-full rounded-md border-2 border-border bg-background px-4 py-2.5 focus:border-primary focus:outline-none disabled:opacity-50";
@@ -48,7 +55,7 @@ export default function KelolaPetugas() {
   const { user } = useAuth();
   const { pathname } = useLocation();
   const [params, setParams] = useSearchParams();
-  const isOperator = user?.role === "operator";
+  const isKecamatan = ["operator", "operator_kecamatan"].includes(user?.role);
   const myKecamatan = user?.wilayah || "";
   // Rute /validasi-akun memakai halaman yang sama, tetapi fokus pada antrean pendaftar.
   const modeValidasi = pathname.startsWith("/validasi-akun");
@@ -64,8 +71,8 @@ export default function KelolaPetugas() {
   const [kelurahanOpts, setKelurahanOpts] = useState([]); // [{kecamatan, nama}]
   const [showForm, setShowForm] = useState(false);
   const emptyForm = {
-    email: "", password: "", name: "", role: isOperator ? "petugas" : "operator",
-    wilayah: isOperator ? myKecamatan : "", kelurahan: "", rw: "", rt: "",
+    email: "", password: "", name: "", role: isKecamatan ? "petugas" : "operator",
+    wilayah: isKecamatan ? myKecamatan : "", kelurahan: "", rw: "", rt: "",
   };
   const [form, setForm] = useState(emptyForm);
   const [busy, setBusy] = useState(false);
@@ -118,10 +125,12 @@ export default function KelolaPetugas() {
     try {
       const payload = {
         email: form.email, password: form.password, name: form.name, role: form.role,
-        wilayah: NEEDS_KECAMATAN(form.role) ? form.wilayah : CITY,
+        wilayah: isKecamatan ? myKecamatan : (NEEDS_KECAMATAN(form.role) ? form.wilayah : CITY),
       };
-      if (form.role === "petugas") {
+      if (form.role === "petugas" || form.role === "operator_kelurahan") {
         payload.kelurahan = form.kelurahan;
+      }
+      if (form.role === "petugas") {
         payload.rw = form.rw;
         payload.rt = rtArray(form.rt);
       }
@@ -145,12 +154,16 @@ export default function KelolaPetugas() {
   const saveEdit = async () => {
     try {
       const payload = { name: editUser.name, email: editUser.email };
-      if (!isOperator) {
+      if (!isKecamatan) {
         payload.role = editUser.role;
         payload.wilayah = NEEDS_KECAMATAN(editUser.role) ? editUser.wilayah : CITY;
+      } else {
+        payload.role = editUser.role;
+      }
+      if (editUser.role === "petugas" || editUser.role === "operator_kelurahan") {
+        payload.kelurahan = editUser.kelurahan;
       }
       if (editUser.role === "petugas") {
-        payload.kelurahan = editUser.kelurahan;
         payload.rw = editUser.rw;
         payload.rt = rtArray(editUser.rt);
       }
@@ -178,11 +191,14 @@ export default function KelolaPetugas() {
 
   const pendingCount = users.filter((u) => u.status === "pending").length;
   const shown = statusFilter === "semua" ? users : users.filter((u) => u.status === statusFilter);
-  const title = modeValidasi ? "Validasi Akun Petugas" : isOperator ? "Kelola Petugas" : "Kelola User";
+  const title = modeValidasi ? "Validasi Akun Petugas" : isKecamatan ? "Kelola Petugas & Kelurahan" : "Kelola User";
   const wilayahText = (u) => {
     if (u.role === "petugas") {
-      const rt = Array.isArray(u.rt) && u.rt.length ? ` / RT ${u.rt.join(", ")}` : "";
+      const rt = Array.isArray(u.rt) && u.rt.length ? ` / RT ${u.rt.join(", ")}` : " (Semua RT)";
       return `${u.wilayah || "-"} · ${u.kelurahan || "-"} · RW ${u.rw || "-"}${rt}`;
+    }
+    if (u.role === "operator_kelurahan") {
+      return `${u.wilayah || "-"} · Kel. ${u.kelurahan || "-"}`;
     }
     return u.wilayah || "–";
   };
@@ -197,7 +213,7 @@ export default function KelolaPetugas() {
           <p className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
             <Users className="h-4 w-4" /> {users.length} akun
             {modeValidasi && <span className="text-xs">· periksa identitas dan wilayah, lalu aktifkan akun</span>}
-            {isOperator && (
+            {isKecamatan && (
               <span className="inline-flex items-center gap-1 rounded-full bg-[#117A69]/10 px-2 py-0.5 text-xs font-bold text-[#0f5f52]" data-testid="operator-scope-label">
                 <MapPin className="h-3 w-3" /> Kecamatan {myKecamatan}
               </span>
@@ -212,42 +228,40 @@ export default function KelolaPetugas() {
         <button
           data-testid="add-user-btn"
           onClick={() => setShowForm((s) => !s)}
-          className="inline-flex min-h-11 items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:bg-[hsl(0_72%_43%)] focus:outline-none"
+          className="inline-flex min-h-11 items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:bg-[#0E6456] focus:outline-none"
         >
-          <UserPlus className="h-4 w-4" /> {isOperator ? "Tambah Petugas" : "Tambah Akun"}
+          <UserPlus className="h-4 w-4" /> {isKecamatan ? "Tambah Petugas / Kelurahan" : "Tambah Akun"}
         </button>
       </div>
 
       <div className="flex items-start gap-2 rounded-lg border border-border bg-secondary/50 p-3 text-xs text-muted-foreground" data-testid="kelola-user-info">
         <Info className="mt-0.5 h-4 w-4 shrink-0 text-[#117A69]" />
-        {isOperator ? (
+        {isKecamatan ? (
           <p>
-            Anda hanya dapat membuat & mengelola akun <b>Petugas</b> di Kecamatan <b>{myKecamatan}</b>. Petugas ditentukan
-            berdasar <b>Kelurahan + RW (+ RT)</b>; ia hanya dapat melakukan <b>Verval & GeoTag</b> pada rumah tangga di wilayah tersebut
-            serta melihat data yang tampil di publik.
+            Anda mengelola akun <b>Petugas RT/RW</b> dan <b>Kelurahan</b> di Kecamatan <b>{myKecamatan}</b>. Petugas RT/RW
+            melakukan Verval &amp; GeoTag lapangan, Kelurahan memeriksa tahap 1, dan Kecamatan memberikan persetujuan akhir.
           </p>
         ) : (
           <p>
-            Superadmin membuat akun <b>Operator Kecamatan</b>, <b>Verifikator</b>, dan <b>Pimpinan</b>. Akun <b>Petugas</b> hanya dapat
-            dibuat oleh Operator kecamatan terkait (berdasar Kelurahan + RW/RT). Operator & verifikator hanya melihat data kecamatannya.
+            Superadmin membuat akun <b>Kecamatan</b>, <b>Kelurahan</b>, <b>Admin Bappeda</b>, <b>Verifikator</b>, dan <b>Pimpinan</b>.
+            Akun Kecamatan dapat membuat &amp; mengelola akun <b>Petugas RT/RW</b> dan <b>Kelurahan</b> di kecamatannya sekaligus
+            memberikan persetujuan akhir Verval.
           </p>
         )}
       </div>
 
       {showForm && (
         <form onSubmit={create} className="rounded-lg border-2 border-primary bg-card p-4 sm:p-6" data-testid="add-user-form">
-          <h3 className="mb-4 font-head text-lg font-bold">{isOperator ? "Tambah Petugas Baru" : "Tambah Akun Baru"}</h3>
+          <h3 className="mb-4 font-head text-lg font-bold">{isKecamatan ? "Tambah Akun Wilayah Kecamatan" : "Tambah Akun Baru"}</h3>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div>
               <label htmlFor="new-user-role" className="mb-1.5 block text-sm font-semibold">Peran Akun</label>
-              {isOperator ? (
-                <input id="new-user-role" data-testid="new-user-role" value="Petugas RT/RW" disabled className={inputCls} />
-              ) : (
-                <select id="new-user-role" data-testid="new-user-role" value={form.role}
-                  onChange={(e) => setForm({ ...form, role: e.target.value })} className={inputCls}>
-                  {SUPERADMIN_ROLE_OPTIONS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-                </select>
-              )}
+              <select id="new-user-role" data-testid="new-user-role" value={form.role}
+                onChange={(e) => setForm({ ...form, role: e.target.value })} className={inputCls}>
+                {(isKecamatan ? KECAMATAN_ROLE_OPTIONS : SUPERADMIN_ROLE_OPTIONS).map(([v, l]) => (
+                  <option key={v} value={v}>{l}</option>
+                ))}
+              </select>
             </div>
             <div>
               <label htmlFor="new-user-name" className="mb-1.5 block text-sm font-semibold">Nama Lengkap</label>
@@ -270,29 +284,31 @@ export default function KelolaPetugas() {
                 Wilayah (Kecamatan){NEEDS_KECAMATAN(form.role) ? "" : " — tidak diperlukan"}
               </label>
               <select id="new-user-wilayah" data-testid="new-user-wilayah" required={NEEDS_KECAMATAN(form.role)}
-                disabled={isOperator || !NEEDS_KECAMATAN(form.role)} value={form.wilayah}
+                disabled={isKecamatan || !NEEDS_KECAMATAN(form.role)} value={form.wilayah}
                 onChange={(e) => setForm({ ...form, wilayah: e.target.value, kelurahan: "" })} className={inputCls}>
                 <option value="">{NEEDS_KECAMATAN(form.role) ? "Pilih kecamatan…" : "Seluruh Kota Makassar"}</option>
                 {REGIONS.map((r) => <option key={r} value={r}>{r}</option>)}
               </select>
             </div>
+            {(form.role === "petugas" || form.role === "operator_kelurahan") && (
+              <div>
+                <label htmlFor="new-user-kelurahan" className="mb-1.5 block text-sm font-semibold">Kelurahan</label>
+                <select id="new-user-kelurahan" data-testid="new-user-kelurahan" required value={form.kelurahan}
+                  onChange={(e) => setForm({ ...form, kelurahan: e.target.value })} className={inputCls}>
+                  <option value="">Pilih kelurahan…</option>
+                  {kelurahanFor(form.wilayah).map((k) => <option key={k} value={k}>{k}</option>)}
+                </select>
+              </div>
+            )}
             {form.role === "petugas" && (
               <>
-                <div>
-                  <label htmlFor="new-user-kelurahan" className="mb-1.5 block text-sm font-semibold">Kelurahan</label>
-                  <select id="new-user-kelurahan" data-testid="new-user-kelurahan" required value={form.kelurahan}
-                    onChange={(e) => setForm({ ...form, kelurahan: e.target.value })} className={inputCls}>
-                    <option value="">Pilih kelurahan…</option>
-                    {kelurahanFor(form.wilayah).map((k) => <option key={k} value={k}>{k}</option>)}
-                  </select>
-                </div>
                 <div>
                   <label htmlFor="new-user-rw" className="mb-1.5 block text-sm font-semibold">RW</label>
                   <input id="new-user-rw" data-testid="new-user-rw" required inputMode="numeric" placeholder="mis. 01" value={form.rw}
                     onChange={(e) => setForm({ ...form, rw: e.target.value })} className={inputCls} />
                 </div>
                 <div>
-                  <label htmlFor="new-user-rt" className="mb-1.5 block text-sm font-semibold">RT <span className="font-normal text-muted-foreground">(opsional, pisahkan koma; kosong = seluruh RW)</span></label>
+                  <label htmlFor="new-user-rt" className="mb-1.5 block text-sm font-semibold">RT <span className="font-normal text-muted-foreground">(kosongkan untuk akun Ketua RW)</span></label>
                   <input id="new-user-rt" data-testid="new-user-rt" placeholder="mis. 01, 02, 03" value={form.rt}
                     onChange={(e) => setForm({ ...form, rt: e.target.value })} className={inputCls} />
                 </div>
@@ -323,7 +339,7 @@ export default function KelolaPetugas() {
         </select>
       </div>
 
-      <div className="table-scroll rounded-lg max-md:border-0 max-md:bg-transparent md:border-2 md:border-border md:bg-card">
+      <div className="table-scroll overflow-x-auto rounded-lg max-md:border-0 max-md:bg-transparent md:border-2 md:border-border md:bg-card">
         <table className="table-cards w-full text-sm md:min-w-[780px]" role="table" data-testid="users-table">
           <caption className="sr-only">
             Daftar akun petugas beserta email, peran, wilayah, status, dan aksi yang tersedia
@@ -343,7 +359,7 @@ export default function KelolaPetugas() {
               <tr role="row"><td role="cell" colSpan={6} className="px-4 py-8 text-center text-muted-foreground" data-testid="users-empty">
                 {users.length > 0
                   ? "Tidak ada akun dengan status ini."
-                  : isOperator ? "Belum ada petugas di kecamatan Anda. Klik “Tambah Petugas”." : "Belum ada akun."}
+                  : isKecamatan ? "Belum ada akun petugas / kelurahan di kecamatan Anda." : "Belum ada akun."}
               </td></tr>
             )}
             {shown.map((u) => {
@@ -442,9 +458,12 @@ export default function KelolaPetugas() {
               </div>
               <div>
                 <label htmlFor="edit-user-role" className="mb-1.5 block text-sm font-semibold">Peran</label>
-                {isOperator || editUser.role === "petugas" ? (
-                  <input id="edit-user-role" data-testid="edit-user-role" value={ROLE_LABEL[editUser.role] || editUser.role} disabled className={inputCls} />
-                ) : (
+                {isKecamatan && ["petugas", "operator_kelurahan"].includes(editUser.role) ? (
+                  <select id="edit-user-role" data-testid="edit-user-role" value={editUser.role}
+                    onChange={(e) => setEditUser({ ...editUser, role: e.target.value })} className={inputCls}>
+                    {KECAMATAN_ROLE_OPTIONS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                  </select>
+                ) : !isKecamatan && editUser.role !== "petugas" ? (
                   <select id="edit-user-role" data-testid="edit-user-role" value={editUser.role}
                     onChange={(e) => setEditUser({ ...editUser, role: e.target.value })} className={inputCls}>
                     {SUPERADMIN_ROLE_OPTIONS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
@@ -452,45 +471,47 @@ export default function KelolaPetugas() {
                       <option value={editUser.role}>{ROLE_LABEL[editUser.role] || editUser.role}</option>
                     )}
                   </select>
+                ) : (
+                  <input id="edit-user-role" data-testid="edit-user-role" value={ROLE_LABEL[editUser.role] || editUser.role} disabled className={inputCls} />
                 )}
               </div>
               <div>
                 <label htmlFor="edit-user-wilayah" className="mb-1.5 block text-sm font-semibold">
                   Wilayah (Kecamatan){NEEDS_KECAMATAN(editUser.role) ? "" : " — tidak diperlukan"}
                 </label>
-                <select id="edit-user-wilayah" data-testid="edit-user-wilayah" disabled={isOperator || !NEEDS_KECAMATAN(editUser.role)}
+                <select id="edit-user-wilayah" data-testid="edit-user-wilayah" disabled={isKecamatan || !NEEDS_KECAMATAN(editUser.role)}
                   value={editUser.wilayah}
                   onChange={(e) => setEditUser({ ...editUser, wilayah: e.target.value, kelurahan: "" })} className={inputCls}>
                   <option value="">{NEEDS_KECAMATAN(editUser.role) ? "Pilih kecamatan…" : "Seluruh Kota Makassar"}</option>
                   {REGIONS.map((r) => <option key={r} value={r}>{r}</option>)}
                 </select>
               </div>
+              {(editUser.role === "petugas" || editUser.role === "operator_kelurahan") && (
+                <div>
+                  <label htmlFor="edit-user-kelurahan" className="mb-1.5 block text-sm font-semibold">Kelurahan</label>
+                  <select id="edit-user-kelurahan" data-testid="edit-user-kelurahan" value={editUser.kelurahan}
+                    onChange={(e) => setEditUser({ ...editUser, kelurahan: e.target.value })} className={inputCls}>
+                    <option value="">Pilih kelurahan…</option>
+                    {editKelurahanList.map((k) => <option key={k} value={k}>{k}</option>)}
+                    {editUser.kelurahan && !editKelurahanList.includes(editUser.kelurahan) && (
+                      <option value={editUser.kelurahan}>{editUser.kelurahan}</option>
+                    )}
+                  </select>
+                </div>
+              )}
               {editUser.role === "petugas" && (
-                <>
+                <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label htmlFor="edit-user-kelurahan" className="mb-1.5 block text-sm font-semibold">Kelurahan</label>
-                    <select id="edit-user-kelurahan" data-testid="edit-user-kelurahan" value={editUser.kelurahan}
-                      onChange={(e) => setEditUser({ ...editUser, kelurahan: e.target.value })} className={inputCls}>
-                      <option value="">Pilih kelurahan…</option>
-                      {editKelurahanList.map((k) => <option key={k} value={k}>{k}</option>)}
-                      {editUser.kelurahan && !editKelurahanList.includes(editUser.kelurahan) && (
-                        <option value={editUser.kelurahan}>{editUser.kelurahan}</option>
-                      )}
-                    </select>
+                    <label htmlFor="edit-user-rw" className="mb-1.5 block text-sm font-semibold">RW</label>
+                    <input id="edit-user-rw" data-testid="edit-user-rw" inputMode="numeric" value={editUser.rw}
+                      onChange={(e) => setEditUser({ ...editUser, rw: e.target.value })} className={inputCls} />
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label htmlFor="edit-user-rw" className="mb-1.5 block text-sm font-semibold">RW</label>
-                      <input id="edit-user-rw" data-testid="edit-user-rw" inputMode="numeric" value={editUser.rw}
-                        onChange={(e) => setEditUser({ ...editUser, rw: e.target.value })} className={inputCls} />
-                    </div>
-                    <div>
-                      <label htmlFor="edit-user-rt" className="mb-1.5 block text-sm font-semibold">RT (koma)</label>
-                      <input id="edit-user-rt" data-testid="edit-user-rt" value={editUser.rt}
-                        onChange={(e) => setEditUser({ ...editUser, rt: e.target.value })} className={inputCls} />
-                    </div>
+                  <div>
+                    <label htmlFor="edit-user-rt" className="mb-1.5 block text-sm font-semibold">RT (koma)</label>
+                    <input id="edit-user-rt" data-testid="edit-user-rt" value={editUser.rt}
+                      onChange={(e) => setEditUser({ ...editUser, rt: e.target.value })} className={inputCls} />
                   </div>
-                </>
+                </div>
               )}
             </div>
             <DialogFooter className="mt-5 flex-row justify-end gap-2">
@@ -500,7 +521,7 @@ export default function KelolaPetugas() {
                 </button>
               </DialogClose>
               <button data-testid="save-edit-user" onClick={saveEdit}
-                className="min-h-11 rounded-md bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground hover:bg-[hsl(0_72%_43%)]">
+                className="min-h-11 rounded-md bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground hover:bg-[#0E6456]">
                 Simpan
               </button>
             </DialogFooter>

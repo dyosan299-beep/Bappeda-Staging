@@ -2,57 +2,87 @@ import React, { useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { Loader2, MapPin, ShieldCheck, X } from "lucide-react";
-import { api, errMsg, fmtWaktu, fotoUrl, GPS_LABEL, HUBUNGAN_LABEL, KESESUAIAN_LABEL, KESIMPULAN_LABEL, KONDISI_RIIL_LABEL } from "@/features/verval/api";
+import { api, errMsg, fmtWaktu, fotoUrl, GPS_LABEL, HUBUNGAN_LABEL, KESESUAIAN_LABEL, KESIMPULAN_LABEL, KONDISI_RIIL_LABEL, STATUS_LABEL } from "@/features/verval/api";
 import { Card, DtsenNilai, Field, INPUT, StatusBadge, UjiBadge } from "@/features/verval/ui";
 import { BTN_PRIMARY, BTN_SM, FR } from "@/features/a11y/ui";
 import { FotoKoordinat } from "@/pages/VervalOperator";
 
-/** Hasil Verval GeoTag — pemeriksaan oleh Verifikator (kecamatannya) / Admin Bappeda / Superadmin;
- *  Pimpinan hanya melihat (read-only). Semua ditegakkan di backend. */
+/** Hasil Verval GeoTag — alur 2 tahap: Kelurahan (tahap 1) -> Kecamatan (persetujuan akhir) & Admin Bappeda/Superadmin;
+ *  Pimpinan hanya melihat (read-only). Semua hak akses & wilayah ditegakkan di backend. */
 export default function VervalReview() {
   const [params, setParams] = useSearchParams();
-  const [status, setStatus] = useState("terkirim");
+  const [status, setStatus] = useState<string | null>(null);
   const [list, setList] = useState<any>(null);
   const [cfg, setCfg] = useState<any>(null);
   const openId = params.get("id");
 
+  useEffect(() => {
+    api.get("/verval/konfigurasi").then((r) => {
+      setCfg(r.data);
+      setStatus((prev) => (prev !== null ? prev : (r.data?.tingkat_reviewer === "kelurahan" ? "menunggu_kelurahan" : "menunggu_kecamatan")));
+    }).catch(() => {
+      setStatus((prev) => (prev !== null ? prev : "menunggu_kecamatan"));
+    });
+  }, []);
+
   const load = useCallback(() => {
+    if (status === null) return;
     api.get("/verval/records", { params: { status: status || undefined, size: 100 } })
       .then((r) => setList(r.data)).catch((e) => { toast.error(errMsg(e)); setList({ items: [] }); });
   }, [status]);
   useEffect(() => { load(); }, [load]);
-  useEffect(() => { api.get("/verval/konfigurasi").then((r) => setCfg(r.data)).catch(() => {}); }, []);
+
+  const subtitle = cfg?.tingkat_reviewer === "kelurahan"
+    ? "Tahap 1 (Kelurahan): Periksa hasil Verval RT/RW di kelurahan Anda, lalu teruskan ke Kecamatan atau kembalikan untuk perbaikan."
+    : cfg?.dapat_review
+      ? "Tahap Akhir (Kecamatan / Bappeda): Persetujuan akhir menjaga nilai awal DTSEN sebagai pembanding dan memperbarui data aktif serta peta sistem."
+      : "Anda melihat hasil Verval lapangan (foto, koordinat, kesimpulan) tanpa mengambil keputusan.";
 
   return (
     <div className="space-y-4" data-testid="verval-review-page">
       <Card>
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
-            <p className="font-head text-lg font-extrabold text-slate-900"><ShieldCheck className="mr-1 inline h-5 w-5 text-[#117A69]" />{cfg?.dapat_review ? "Pemeriksaan Hasil Verval GeoTag" : "Hasil Verval GeoTag"}</p>
+            <p className="font-head text-lg font-extrabold text-slate-900">
+              <ShieldCheck className="mr-1 inline h-5 w-5 text-[#117A69]" />
+              {cfg?.tingkat_reviewer === "kelurahan" ? "Pemeriksaan Verval Tahap 1 (Kelurahan)" : cfg?.dapat_review ? "Pemeriksaan & Persetujuan Akhir Verval" : "Hasil Verval GeoTag"}
+            </p>
             <p className="text-xs text-slate-600">
-              {cfg?.dapat_review ? "Keputusan Anda tidak mengubah data sumber DTSEN. Koreksi data DTSEN tetap melalui alur pembaruan data yang berlaku." : "Anda melihat hasil Verval lapangan (foto, koordinat, kesimpulan) tanpa mengambil keputusan."}
+              {subtitle}
+              {cfg?.scope_kelurahan && <span className="ml-1 rounded-full bg-[#117A69]/10 px-2 py-0.5 text-[11px] font-bold text-[#0f5f52]" data-testid="review-scope-kel">Kel. {cfg.scope_kelurahan}</span>}
               {cfg?.scope_kecamatan && <span className="ml-1 rounded-full bg-[#117A69]/10 px-2 py-0.5 text-[11px] font-bold text-[#0f5f52]" data-testid="review-scope">Kec. {cfg.scope_kecamatan}</span>}
             </p>
           </div>
-          <select className={`${INPUT} max-w-[220px]`} value={status} onChange={(e) => setStatus(e.target.value)} data-testid="review-filter-status">
+          <select className={`${INPUT} max-w-[230px]`} value={status ?? ""} onChange={(e) => setStatus(e.target.value)} data-testid="review-filter-status">
             <option value="">Semua (selain draft)</option>
-            {["terkirim", "perlu_perbaikan", "disetujui", "ditolak"].map((s) => <option key={s} value={s}>{s.replace(/_/g, " ")}</option>)}
+            {["menunggu_kelurahan", "menunggu_kecamatan", "perlu_perbaikan", "disetujui", "ditolak", "terkirim"].map((s) => (
+              <option key={s} value={s}>{STATUS_LABEL[s] || s.replace(/_/g, " ")}</option>
+            ))}
           </select>
         </div>
         {!list ? <p className="mt-4 text-sm"><Loader2 className="inline h-4 w-4 animate-spin" /> Memuat…</p> : (
           <div className="table-scroll mt-3 overflow-x-auto">
-            <table className="w-full min-w-[680px] text-left text-xs" data-testid="review-table">
-              <thead className="bg-slate-50 text-[11px] uppercase text-slate-600"><tr><th className="p-2">Wilayah</th><th className="p-2">Petugas</th><th className="p-2">Foto</th><th className="p-2">GPS</th><th className="p-2">Dikirim</th><th className="p-2">Status</th><th className="p-2" /></tr></thead>
+            <table className="w-full min-w-[740px] text-left text-xs" data-testid="review-table">
+              <thead className="bg-slate-50 text-[11px] uppercase text-slate-600"><tr><th className="p-2">Warga / Wilayah</th><th className="p-2">Petugas</th><th className="p-2">Foto</th><th className="p-2">GPS</th><th className="p-2">Dikirim</th><th className="p-2">Status</th><th className="p-2" /></tr></thead>
               <tbody>
                 {list.items.map((r: any) => (
                   <tr key={r.id} className="border-t border-slate-100" data-testid="review-row">
-                    <td className="p-2">{r.kelurahan}, {r.kecamatan} · RW {r.rw || "-"}/RT {r.rt || "-"} <UjiBadge show={r.data_uji} /></td>
+                    <td className="p-2">
+                      <p className="font-bold text-slate-900">
+                        {r.kepala_keluarga || "-"}
+                        {r.jenis_verval === "warga_baru" && <span className="ml-1 rounded-full bg-teal-50 px-1.5 py-0.5 text-[10px] font-bold text-[#117A69] ring-1 ring-[#117A69]/30">Warga Baru</span>}
+                        <UjiBadge show={r.data_uji} />
+                      </p>
+                      <p className="text-[11px] text-slate-600">
+                        {r.nik ? `NIK ${r.nik} · ` : ""}{r.kelurahan}, {r.kecamatan} · RW {r.rw || "-"}/RT {r.rt || "-"}
+                      </p>
+                    </td>
                     <td className="p-2">{r.operator_nama || r.operator_email}</td>
                     <td className="p-2">{r.foto_count}</td>
                     <td className="p-2">{GPS_LABEL[r.status_gps] || "-"}</td>
                     <td className="p-2">{fmtWaktu(r.submitted_at)}</td>
                     <td className="p-2"><StatusBadge status={r.status} /></td>
-                    <td className="p-2"><button type="button" className={BTN_SM} onClick={() => setParams({ id: r.id })} data-testid="review-open">{cfg?.dapat_review && r.status === "terkirim" ? "Periksa" : "Lihat"}</button></td>
+                    <td className="p-2"><button type="button" className={BTN_SM} onClick={() => setParams({ id: r.id })} data-testid="review-open">{cfg?.dapat_review && ["menunggu_kelurahan", "menunggu_kecamatan", "terkirim"].includes(r.status) ? "Periksa" : "Lihat"}</button></td>
                   </tr>
                 ))}
                 {!list.items.length && <tr><td colSpan={7} className="p-6 text-center text-slate-500">Tidak ada data.</td></tr>}
@@ -72,13 +102,30 @@ function ReviewDetail({ id, cfg, onClose }: any) {
   const [catatan, setCatatan] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
-  useEffect(() => { api.get(`/verval/records/${id}`).then((x) => setR(x.data)).catch((e) => setErr(errMsg(e))); }, [id]);
+  useEffect(() => {
+    api.get(`/verval/records/${id}`).then((x) => {
+      setR(x.data);
+      const isKel = cfg?.tingkat_reviewer === "kelurahan";
+      const st = x.data?.status;
+      setKeputusan(isKel || st === "menunggu_kelurahan" ? "teruskan_kecamatan" : "disetujui");
+    }).catch((e) => setErr(errMsg(e)));
+  }, [id, cfg?.tingkat_reviewer]);
 
   const putus = async () => {
     setBusy(true);
-    try { const x = await api.post(`/verval/records/${id}/review`, { keputusan, catatan }); setR(x.data); toast.success("Keputusan tersimpan"); }
+    try { const x = await api.post(`/verval/records/${id}/review`, { keputusan, catatan }); setR(x.data); setCatatan(""); toast.success("Keputusan tersimpan"); }
     catch (e) { toast.error(errMsg(e)); } finally { setBusy(false); }
   };
+
+  const tingkat = cfg?.tingkat_reviewer;
+  const idl = r?.identitas_lapangan || r?.warga_baru || {};
+  const canKelDecide = r && tingkat === "kelurahan" && ["menunggu_kelurahan", "terkirim"].includes(r.status);
+  const canKecDecide = r && (tingkat === "kecamatan" || tingkat === "admin")
+    && (r.status === "menunggu_kecamatan" || (tingkat === "admin" && r.status === "terkirim"));
+  const canAdmKelDecide = r && tingkat === "admin" && r.status === "menunggu_kelurahan";
+  const decisionOptions = (canKelDecide || canAdmKelDecide)
+    ? [["teruskan_kecamatan", "Teruskan ke Kecamatan"], ["perlu_perbaikan", "Kembalikan ke RT/RW"], ["ditolak", "Tolak"]]
+    : [["disetujui", "Setujui Akhir & Perbarui Sistem"], ["perlu_perbaikan", "Kembalikan"], ["ditolak", "Tolak"]];
 
   return (
     <div className="fixed inset-0 z-[600] flex justify-end bg-slate-900/40" role="dialog" aria-modal="true" aria-label="Detail Verval">
@@ -91,20 +138,46 @@ function ReviewDetail({ id, cfg, onClose }: any) {
             <Card>
               <div className="flex items-start justify-between gap-2">
                 <div>
-                  <p className="text-sm font-bold" data-testid="review-identitas">{r.sasaran?.kepala_keluarga || "(relasi DTSEN tidak ditemukan)"} <UjiBadge show={r.data_uji} /></p>
-                  {r.sasaran && <p className="text-xs text-slate-600">No. KK {r.sasaran.no_kk} · {r.sasaran.alamat} · {r.kelurahan}, {r.kecamatan} · RW {r.rw || "-"}/RT {r.rt || "-"}</p>}
+                  <p className="text-sm font-bold" data-testid="review-identitas">
+                    {idl.kepala_keluarga || r.sasaran?.kepala_keluarga || "(tanpa nama)"}{" "}
+                    {r.jenis_verval === "warga_baru" && <span className="ml-1 rounded-full bg-teal-50 px-2 py-0.5 text-[10px] font-bold text-[#117A69] ring-1 ring-[#117A69]/30">Warga Baru</span>}
+                    <UjiBadge show={r.data_uji} />
+                  </p>
+                  <p className="text-xs text-slate-600">
+                    No. KK {idl.no_kk || r.sasaran?.no_kk || "-"} · NIK {idl.nik || r.sasaran?.nik || "belum diisi"} · {idl.alamat || r.sasaran?.alamat || "-"} · {r.kelurahan}, {r.kecamatan} · RW {r.rw || "-"}/RT {r.rt || "-"}
+                  </p>
+                  {r.lintas_kelurahan_info && <p className="mt-1 text-xs text-amber-800">{r.lintas_kelurahan_info}</p>}
                   {r.catatan_relasi && <p className="text-xs text-amber-800">{r.catatan_relasi}</p>}
                   <p className="text-[11px] text-slate-500">Petugas: {r.operator_nama} ({r.operator_email}) · tanda terima {r.tanda_terima || "-"}</p>
                 </div>
                 <StatusBadge status={r.status} testid="review-status" />
               </div>
+              {r.sinkron_sistem?.disinkronkan && (
+                <p className="mt-2 rounded bg-emerald-50 px-2.5 py-1.5 text-xs font-semibold text-emerald-900 ring-1 ring-emerald-200" data-testid="review-sync-badge">
+                  Tersinkron ke data aktif sistem ({r.sinkron_sistem.jenis}) pada {fmtWaktu(r.sinkron_sistem.disetujui_at)}.
+                </p>
+              )}
             </Card>
             <Card>
               <h3 className="text-xs font-bold uppercase text-slate-500">Lokasi GPS</h3>
-              <p className="mt-1 text-xs" data-testid="review-gps"><MapPin className="mr-1 inline h-3.5 w-3.5" />{r.gps?.lat != null ? `${r.gps.lat.toFixed(6)}, ${r.gps.lng.toFixed(6)}${r.gps.akurasi_m != null ? ` · ±${r.gps.akurasi_m} m` : ""}` : "tidak ada koordinat"} · <b>{GPS_LABEL[r.gps?.status_gps] || "-"}</b> (batas {r.gps?.batas_akurasi_m ?? cfg?.gps_max_akurasi_m} m){r.gps?.sumber?.startsWith("foto") && <span className="ml-1 text-slate-500">· dari koordinat foto</span>}</p>
+              <p className="mt-1 text-xs" data-testid="review-gps">
+                <MapPin className="mr-1 inline h-3.5 w-3.5" />
+                {r.gps?.lat != null ? `${r.gps.lat.toFixed(6)}, ${r.gps.lng.toFixed(6)}${r.gps.akurasi_m != null ? ` · ±${r.gps.akurasi_m} m` : ""}` : "tidak ada koordinat"} ·{" "}
+                <b>{GPS_LABEL[r.gps?.status_gps] || "-"}</b> (batas {r.gps?.batas_akurasi_m ?? cfg?.gps_max_akurasi_m} m)
+                {r.gps?.sumber?.startsWith("foto") && <span className="ml-1 text-slate-500">· dari koordinat foto</span>}
+              </p>
+              {r.gps?.status_gps === "pin_manual" && r.gps?.alasan_manual && (
+                <p className="mt-1 rounded bg-amber-50 px-2 py-1 text-xs text-amber-900">Pin manual: {r.gps.alasan_manual}</p>
+              )}
               {r.alasan_tanpa_gps && <p className="text-xs text-amber-800">Alasan tanpa GPS: {r.alasan_tanpa_gps}</p>}
-              <p className="mt-1 text-[11px] text-slate-500">Posisi perangkat saat pemeriksaan; bukan bukti lokasi rumah terverifikasi.</p>
             </Card>
+            {r.kelurahan_reviewed_by && (
+              <Card>
+                <h3 className="text-xs font-bold uppercase text-slate-500">Pemeriksaan Tahap 1 (Kelurahan)</h3>
+                <p className="mt-1 text-xs">Oleh <b>{r.kelurahan_reviewed_by}</b> · {fmtWaktu(r.kelurahan_reviewed_at)}</p>
+                {r.kelurahan_catatan && <p className="mt-1 text-xs text-slate-700">{r.kelurahan_catatan}</p>}
+              </Card>
+            )}
             <Card>
               <h3 className="text-xs font-bold uppercase text-slate-500">Foto ({r.foto?.length || 0})</h3>
               <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3" data-testid="review-foto">
@@ -175,19 +248,28 @@ function ReviewDetail({ id, cfg, onClose }: any) {
               {r.kesimpulan?.catatan && <p className="mt-1 text-xs text-slate-600">{r.kesimpulan.catatan}</p>}
               {r.catatan_umum && <p className="mt-2 text-xs">Catatan umum: {r.catatan_umum}</p>}
             </Card>
-            {r.status === "terkirim" && cfg?.dapat_review ? (
+            {(canKelDecide || canKecDecide || canAdmKelDecide) && cfg?.dapat_review ? (
               <Card data-testid="review-form">
-                <h3 className="text-sm font-bold">Keputusan pemeriksaan</h3>
+                <h3 className="text-sm font-bold">{canKelDecide || canAdmKelDecide ? "Keputusan Tahap 1 (Kelurahan)" : "Persetujuan Akhir (Kecamatan)"}</h3>
                 <div className="mt-2 grid grid-cols-3 gap-1">
-                  {[["disetujui", "Setujui"], ["perlu_perbaikan", "Perlu perbaikan"], ["ditolak", "Tolak"]].map(([k, l]) => (
+                  {decisionOptions.map(([k, l]) => (
                     <button key={k} type="button" aria-pressed={keputusan === k} onClick={() => setKeputusan(k)} data-testid={`review-keputusan-${k}`}
-                      className={`min-h-10 rounded-[10px] text-xs font-bold ${FR} ${keputusan === k ? "bg-[#232F3E] text-white" : "bg-white ring-1 ring-slate-200"}`}>{l}</button>
+                      className={`min-h-10 rounded-[10px] px-2 text-xs font-bold ${FR} ${keputusan === k ? "bg-[#232F3E] text-white" : "bg-white ring-1 ring-slate-200"}`}>{l}</button>
                   ))}
                 </div>
-                <div className="mt-2"><Field label={`Catatan${keputusan !== "disetujui" ? " (wajib)" : ""}`}><textarea className={INPUT} rows={3} value={catatan} onChange={(e) => setCatatan(e.target.value)} data-testid="review-catatan" /></Field></div>
+                <div className="mt-2"><Field label={`Catatan${keputusan === "ditolak" || keputusan === "perlu_perbaikan" ? " (wajib)" : ""}`}><textarea className={INPUT} rows={3} value={catatan} onChange={(e) => setCatatan(e.target.value)} data-testid="review-catatan" /></Field></div>
                 <button type="button" className={`${BTN_PRIMARY} mt-3 w-full`} onClick={putus} disabled={busy} data-testid="review-submit">{busy && <Loader2 className="h-4 w-4 animate-spin" />}Simpan keputusan</button>
               </Card>
-            ) : r.review_catatan && <Card><p className="text-xs">Catatan pemeriksa ({r.reviewed_by}, {fmtWaktu(r.reviewed_at)}): {r.review_catatan}</p></Card>}
+            ) : (
+              <>
+                {tingkat === "kecamatan" && r.status === "menunggu_kelurahan" && (
+                  <Card className="bg-sky-50 ring-sky-200" data-testid="review-waiting-kelurahan">
+                    <p className="text-xs font-semibold text-sky-900">Menunggu pemeriksaan tahap 1 oleh pihak Kelurahan terlebih dahulu sebelum Kecamatan dapat memberi persetujuan akhir.</p>
+                  </Card>
+                )}
+                {r.review_catatan && <Card><p className="text-xs">Catatan Kecamatan ({r.reviewed_by}, {fmtWaktu(r.reviewed_at)}): {r.review_catatan}</p></Card>}
+              </>
+            )}
             <Card>
               <h3 className="text-xs font-bold uppercase text-slate-500">Riwayat</h3>
               <ol className="mt-1 space-y-1 text-xs" data-testid="review-riwayat">{(r.riwayat || []).map((h: any) => <li key={h.id}>{fmtWaktu(h.waktu)} · <b>{h.aksi}</b> {h.dari_status ? `${h.dari_status} → ` : ""}{h.ke_status} · {h.oleh}{h.catatan ? ` · ${h.catatan}` : ""}</li>)}</ol>

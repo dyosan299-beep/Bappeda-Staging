@@ -27,11 +27,13 @@ export function vervalPopupHtml(t: any, opts: { linkDetail?: boolean; linkForm?:
   }).join("");
   const rows = [
     ["Status", `<b style="color:${color}">${esc(STATUS_LABEL[t.status] || t.status)}</b>`],
+    ...(t.kepala_keluarga ? [["Kepala Keluarga", esc(t.kepala_keluarga)]] : []),
+    ...(t.nik ? [["NIK", esc(t.nik)]] : []),
     ["Kelurahan", esc(t.kelurahan || "-")],
     ["Kecamatan", esc(t.kecamatan || "-")],
     ["RW / RT", `RW ${esc(t.rw || "-")} / RT ${esc(t.rt || "-")}`],
     ["Koordinat", `${Number(t.lat).toFixed(6)}, ${Number(t.lng).toFixed(6)}${t.akurasi_m != null ? ` (±${esc(t.akurasi_m)} m)` : ""}`],
-    ["Sumber titik", esc(t.sumber_koordinat === "foto" ? "koordinat foto" : (t.sumber_koordinat || "").startsWith("foto_") ? "koordinat foto (otomatis)" : "GPS perangkat")],
+    ["Sumber titik", esc(t.sumber_koordinat === "pin_manual" ? `Pin manual${t.alasan_manual ? ` (${t.alasan_manual})` : ""}` : t.sumber_koordinat === "foto" ? "koordinat foto" : (t.sumber_koordinat || "").startsWith("foto_") ? "koordinat foto (otomatis)" : "GPS perangkat")],
     ["GPS", esc(GPS_LABEL[t.status_gps] || t.status_gps || "-")],
     ["Kesimpulan", esc(t.kesimpulan ? KESIMPULAN_LABEL[t.kesimpulan] || t.kesimpulan : "-")],
     ["Petugas", esc(t.operator_nama || "-")],
@@ -41,10 +43,10 @@ export function vervalPopupHtml(t: any, opts: { linkDetail?: boolean; linkForm?:
   if (opts.linkDetail) links += `<a href="/verval/review?id=${encodeURIComponent(t.id)}" style="display:inline-block;margin-top:6px;font-weight:700;color:#117A69">Buka detail Verval →</a>`;
   if (opts.linkForm && t.dtsen_ref) links += `<a href="/verval/sasaran/${encodeURIComponent(t.dtsen_ref)}" style="display:inline-block;margin-top:6px;font-weight:700;color:#117A69">Buka formulir Verval →</a>`;
   return `<div style="min-width:210px;max-width:300px;font-size:11.5px">
-    <div style="font-weight:800;color:#0f172a;margin-bottom:4px">GeoTag Verval DTSEN${t.data_uji ? ' <span style="color:#b45309">· DATA UJI</span>' : ""}</div>
+    <div style="font-weight:800;color:#0f172a;margin-bottom:4px">GeoTag Verval DTSEN${t.jenis_verval === "warga_baru" ? ' <span style="color:#117A69">· WARGA BARU</span>' : ""}${t.data_uji ? ' <span style="color:#b45309">· DATA UJI</span>' : ""}</div>
     <table style="border-collapse:collapse">${rows}</table>
     ${fotos.length ? `<div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">${thumbs}</div>` : ""}
-    <p style="margin:6px 0 0;color:#64748b">Foto: ${fotos.length} · Titik = posisi perangkat saat pemeriksaan, bukan lokasi rumah terverifikasi.</p>
+    <p style="margin:6px 0 0;color:#64748b">Foto: ${fotos.length} · Titik GeoTag Verval.</p>
     ${links}</div>`;
 }
 
@@ -68,9 +70,8 @@ export function useVervalPeta() {
 
 /** Lapisan GeoTag-Verval untuk peta Leaflet (Peta Sosial, Peta Kemiskinan, Titik Koordinat).
  *  Backend menentukan apa yang boleh dilihat:
- *  - Petugas/Operator RT/RW (data sendiri), Verifikator (kecamatannya), Admin Bappeda, Superadmin, Pimpinan: titik + foto
- *  - Operator kecamatan & peran internal lain: rekap per kelurahan
- *  - Peran lain: lapisan tidak ditampilkan */
+ *  - Petugas RT/RW (wilayahnya), Kelurahan (kelurahannya), Kecamatan (kecamatannya), Admin Bappeda, Superadmin, Pimpinan: titik + foto + detail
+ *  - Admin OPD / Viewer: rekap agregat per kelurahan */
 export default function VervalMapLayer({ map, compact = false }: { map: L.Map | null; compact?: boolean }) {
   const { data, reload } = useVervalPeta();
   const [show, setShow] = useState(true);
@@ -114,6 +115,7 @@ export default function VervalMapLayer({ map, compact = false }: { map: L.Map | 
       </div>
       {open && (
         <div className="mt-2 space-y-2 text-[11px] text-slate-600">
+          {data.scope_kelurahan && <p className="rounded bg-[#117A69]/10 px-2 py-1 font-semibold text-[#0f5f52]" data-testid="verval-layer-scope-kel">Wilayah: Kel. {data.scope_kelurahan}</p>}
           {data.scope_kecamatan && <p className="rounded bg-[#117A69]/10 px-2 py-1 font-semibold text-[#0f5f52]" data-testid="verval-layer-scope">Wilayah: Kec. {data.scope_kecamatan}</p>}
           {titik ? (
             <div className="flex flex-wrap gap-2">

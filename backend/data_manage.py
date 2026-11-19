@@ -44,12 +44,103 @@ WRITE_ROLES = ("superadmin", "admin", "admin_bappeda", "verifikator", "admin_opd
                "petugas", "operator", "operator_kecamatan", "operator_kelurahan")
 DELETE_ROLES = ("superadmin", "admin", "admin_bappeda", "verifikator")
 # Peran dengan batasan wilayah (hanya boleh menulis pada wilayahnya sendiri)
-KECAMATAN_SCOPED = ("petugas", "operator_kecamatan")
-KELURAHAN_SCOPED = ("operator", "operator_kelurahan")
+KECAMATAN_SCOPED = ("operator", "operator_kecamatan")
+KELURAHAN_SCOPED = ("operator_kelurahan",)
 
 
 def _clean(doc: Optional[Dict[str, Any]]) -> Dict[str, Any]:
     return {k: v for k, v in (doc or {}).items() if k != "_id"}
+
+
+async def refresh_agregat_for(db, kode_kelurahan: str, kode_kecamatan: str = ""):
+    """Hitung ulang village_stats kelurahan terkait + district_stats kecamatannya."""
+    if not kode_kelurahan:
+        return
+    hs = await db.households.find({"kode_kelurahan": str(kode_kelurahan)}).to_list(100000)
+    if not hs:
+        await db.village_stats.delete_many({"kode_kelurahan": str(kode_kelurahan)})
+    else:
+        contoh = hs[0]
+        kode_kec = str(contoh.get("kode_kecamatan") or kode_kecamatan or "")
+        dis = await db.disability_region_stats.find(
+            {"kelurahan_norm": iw.norm_name(contoh.get("kelurahan"))}).to_list(50)
+        v: Dict[str, Any] = {
+            "id": str(kode_kelurahan), "kode_kelurahan": str(kode_kelurahan),
+            "kelurahan": contoh.get("kelurahan"), "kecamatan": contoh.get("kecamatan"),
+            "kode_kecamatan": kode_kec,
+            "total_households": 0, "total_individu": 0, "per_desil": {}, "per_risk": {},
+            "pbi_nas": 0, "pbi_pemda": 0, "rumah_rentan": 0, "sanitasi_tidak_layak": 0,
+            "air_rentan": 0, "hunian_rentan": 0, "listrik_rentan": 0,
+            "perlu_validasi": 0, "updated_at": now_iso(),
+        }
+        sum_risk = 0.0
+        for h in hs:
+            v["total_households"] += 1
+            v["total_individu"] += int(h.get("jumlah_anggota_keluarga") or 0)
+            d = str(h.get("desil_nasional") or "-")
+            v["per_desil"][d] = v["per_desil"].get(d, 0) + 1
+            lvl = h.get("risk_level") or "rendah"
+            v["per_risk"][lvl] = v["per_risk"].get(lvl, 0) + 1
+            v["pbi_nas"] += 1 if int(h.get("pbi_nas") or 0) == 1 else 0
+            v["pbi_pemda"] += 1 if int(h.get("pbi_pemda") or 0) == 1 else 0
+            for key, flag in (("rumah_rentan", "rumah_rentan"),
+                              ("sanitasi_tidak_layak", "sanitasi_rentan"),
+                              ("air_rentan", "air_rentan"),
+                              ("hunian_rentan", "hunian_rentan"),
+                              ("listrik_rentan", "listrik_rentan")):
+                v[key] += 1 if h.get(flag) else 0
+            v["perlu_validasi"] += 1 if h.get("perlu_validasi") else 0
+            sum_risk += float(h.get("risk_score") or 0)
+        n = max(v["total_households"], 1)
+        v["avg_risk"] = round(sum_risk / n, 2)
+        v["desil_1_2"] = int(v["per_desil"].get("1", 0)) + int(v["per_desil"].get("2", 0))
+        v["persen_desil_1_2"] = round(v["desil_1_2"] * 100.0 / n, 2)
+        v["persen_rumah_rentan"] = round(v["rumah_rentan"] * 100.0 / n, 2)
+        v["prioritas_tinggi"] = int(v["per_risk"].get("sangat_tinggi", 0)) + \
+            int(v["per_risk"].get("tinggi", 0))
+        v["disabilitas"] = sum(int(x.get("jumlah") or 0) for x in dis)
+        v["skor_prioritas"] = round(min(100.0, (
+            0.40 * v["avg_risk"] + 0.25 * v["persen_desil_1_2"]
+            + 0.20 * v["persen_rumah_rentan"]
+            + 0.15 * min(100.0, v["disabilitas"] / 5.0))), 2)
+        geo = await db.geo_kelurahan.find_one(
+            {"kelurahan_norm": iw.norm_name(v["kelurahan"])})
+        v["punya_batas_wilayah"] = bool(geo)
+        await db.village_stats.find_one_and_update(
+            {"id": str(kode_kelurahan)}, {"$set": v}, upsert=True)
+        kode_kecamatan = kode_kec or kode_kecamatan
+
+    if not kode_kecamatan:
+        return
+    vs = await db.village_stats.find({"kode_kecamatan": str(kode_kecamatan)}).to_list(1000)
+    if not vs:
+        await db.district_stats.delete_many({"kode_kecamatan": str(kode_kecamatan)})
+        return
+    d: Dict[str, Any] = {
+        "id": str(kode_kecamatan), "kode_kecamatan": str(kode_kecamatan),
+        "kecamatan": vs[0].get("kecamatan"), "total_households": 0, "total_individu": 0,
+        "per_desil": {}, "per_risk": {}, "pbi_nas": 0, "pbi_pemda": 0, "rumah_rentan": 0,
+        "sanitasi_tidak_layak": 0, "air_rentan": 0, "hunian_rentan": 0, "disabilitas": 0,
+        "jumlah_kelurahan": len(vs), "updated_at": now_iso(),
+    }
+    sum_risk = 0.0
+    for v in vs:
+        for key in ("total_households", "total_individu", "pbi_nas", "pbi_pemda",
+                    "rumah_rentan", "sanitasi_tidak_layak", "air_rentan",
+                    "hunian_rentan", "disabilitas"):
+            d[key] += int(v.get(key) or 0)
+        for dk, dv in (v.get("per_desil") or {}).items():
+            d["per_desil"][dk] = d["per_desil"].get(dk, 0) + dv
+        for rk, rv in (v.get("per_risk") or {}).items():
+            d["per_risk"][rk] = d["per_risk"].get(rk, 0) + rv
+        sum_risk += float(v.get("avg_risk") or 0) * int(v.get("total_households") or 0)
+    n = max(d["total_households"], 1)
+    d["avg_risk"] = round(sum_risk / n, 2)
+    d["desil_1_2"] = int(d["per_desil"].get("1", 0)) + int(d["per_desil"].get("2", 0))
+    d["persen_desil_1_2"] = round(d["desil_1_2"] * 100.0 / n, 2)
+    d["persen_rumah_rentan"] = round(d["rumah_rentan"] * 100.0 / n, 2)
+    await db.district_stats.find_one_and_update(
+        {"id": str(kode_kecamatan)}, {"$set": d}, upsert=True)
 
 
 class KodeIn(BaseModel):
@@ -100,17 +191,20 @@ def build_router(db, current_user_dep, editor_dep, admin_dep) -> APIRouter:  # n
         """Operator kecamatan/kelurahan hanya boleh menyentuh wilayahnya."""
         role = user.get("role") or ""
         wil = iw.norm_name(user.get("wilayah"))
-        if not wil:
-            return
-        if role in KECAMATAN_SCOPED and iw.norm_name(kecamatan) != wil:
+        if role in KECAMATAN_SCOPED and wil and iw.norm_name(kecamatan) != wil:
             raise HTTPException(
                 status_code=403,
                 detail=f"Anda hanya berwenang atas Kecamatan {user.get('wilayah')}")
-        if role in KELURAHAN_SCOPED and wil not in (iw.norm_name(kelurahan),
-                                                    iw.norm_name(kecamatan)):
-            raise HTTPException(
-                status_code=403,
-                detail=f"Anda hanya berwenang atas wilayah {user.get('wilayah')}")
+        if role in KELURAHAN_SCOPED:
+            if wil and iw.norm_name(kecamatan) != wil:
+                raise HTTPException(
+                    status_code=403,
+                    detail=f"Anda hanya berwenang atas Kecamatan {user.get('wilayah')}")
+            kel_user = iw.norm_name(user.get("kelurahan") or user.get("wilayah"))
+            if kel_user and kel_user != iw.norm_name(kelurahan):
+                raise HTTPException(
+                    status_code=403,
+                    detail=f"Anda hanya berwenang atas Kelurahan {user.get('kelurahan') or user.get('wilayah')}")
 
     async def audit(user: dict, action: str, entitas: str, ref: str,
                     sebelum: Any = None, sesudah: Any = None, modul: str = "",
@@ -139,94 +233,7 @@ def build_router(db, current_user_dep, editor_dep, admin_dep) -> APIRouter:  # n
         return _clean(cfg) or scoring.default_config()
 
     async def refresh_agregat(kode_kelurahan: str, kode_kecamatan: str = ""):
-        """Hitung ulang village_stats kelurahan terkait + district_stats kecamatannya."""
-        if not kode_kelurahan:
-            return
-        hs = await db.households.find({"kode_kelurahan": str(kode_kelurahan)}).to_list(100000)
-        if not hs:
-            await db.village_stats.delete_many({"kode_kelurahan": str(kode_kelurahan)})
-        else:
-            contoh = hs[0]
-            kode_kec = str(contoh.get("kode_kecamatan") or kode_kecamatan or "")
-            dis = await db.disability_region_stats.find(
-                {"kelurahan_norm": iw.norm_name(contoh.get("kelurahan"))}).to_list(50)
-            v: Dict[str, Any] = {
-                "id": str(kode_kelurahan), "kode_kelurahan": str(kode_kelurahan),
-                "kelurahan": contoh.get("kelurahan"), "kecamatan": contoh.get("kecamatan"),
-                "kode_kecamatan": kode_kec,
-                "total_households": 0, "total_individu": 0, "per_desil": {}, "per_risk": {},
-                "pbi_nas": 0, "pbi_pemda": 0, "rumah_rentan": 0, "sanitasi_tidak_layak": 0,
-                "air_rentan": 0, "hunian_rentan": 0, "listrik_rentan": 0,
-                "perlu_validasi": 0, "updated_at": now_iso(),
-            }
-            sum_risk = 0.0
-            for h in hs:
-                v["total_households"] += 1
-                v["total_individu"] += int(h.get("jumlah_anggota_keluarga") or 0)
-                d = str(h.get("desil_nasional") or "-")
-                v["per_desil"][d] = v["per_desil"].get(d, 0) + 1
-                lvl = h.get("risk_level") or "rendah"
-                v["per_risk"][lvl] = v["per_risk"].get(lvl, 0) + 1
-                v["pbi_nas"] += 1 if int(h.get("pbi_nas") or 0) == 1 else 0
-                v["pbi_pemda"] += 1 if int(h.get("pbi_pemda") or 0) == 1 else 0
-                for key, flag in (("rumah_rentan", "rumah_rentan"),
-                                  ("sanitasi_tidak_layak", "sanitasi_rentan"),
-                                  ("air_rentan", "air_rentan"),
-                                  ("hunian_rentan", "hunian_rentan"),
-                                  ("listrik_rentan", "listrik_rentan")):
-                    v[key] += 1 if h.get(flag) else 0
-                v["perlu_validasi"] += 1 if h.get("perlu_validasi") else 0
-                sum_risk += float(h.get("risk_score") or 0)
-            n = max(v["total_households"], 1)
-            v["avg_risk"] = round(sum_risk / n, 2)
-            v["desil_1_2"] = int(v["per_desil"].get("1", 0)) + int(v["per_desil"].get("2", 0))
-            v["persen_desil_1_2"] = round(v["desil_1_2"] * 100.0 / n, 2)
-            v["persen_rumah_rentan"] = round(v["rumah_rentan"] * 100.0 / n, 2)
-            v["prioritas_tinggi"] = int(v["per_risk"].get("sangat_tinggi", 0)) + \
-                int(v["per_risk"].get("tinggi", 0))
-            v["disabilitas"] = sum(int(x.get("jumlah") or 0) for x in dis)
-            v["skor_prioritas"] = round(min(100.0, (
-                0.40 * v["avg_risk"] + 0.25 * v["persen_desil_1_2"]
-                + 0.20 * v["persen_rumah_rentan"]
-                + 0.15 * min(100.0, v["disabilitas"] / 5.0))), 2)
-            geo = await db.geo_kelurahan.find_one(
-                {"kelurahan_norm": iw.norm_name(v["kelurahan"])})
-            v["punya_batas_wilayah"] = bool(geo)
-            await db.village_stats.find_one_and_update(
-                {"id": str(kode_kelurahan)}, {"$set": v}, upsert=True)
-            kode_kecamatan = kode_kec or kode_kecamatan
-
-        if not kode_kecamatan:
-            return
-        vs = await db.village_stats.find({"kode_kecamatan": str(kode_kecamatan)}).to_list(1000)
-        if not vs:
-            await db.district_stats.delete_many({"kode_kecamatan": str(kode_kecamatan)})
-            return
-        d: Dict[str, Any] = {
-            "id": str(kode_kecamatan), "kode_kecamatan": str(kode_kecamatan),
-            "kecamatan": vs[0].get("kecamatan"), "total_households": 0, "total_individu": 0,
-            "per_desil": {}, "per_risk": {}, "pbi_nas": 0, "pbi_pemda": 0, "rumah_rentan": 0,
-            "sanitasi_tidak_layak": 0, "air_rentan": 0, "hunian_rentan": 0, "disabilitas": 0,
-            "jumlah_kelurahan": len(vs), "updated_at": now_iso(),
-        }
-        sum_risk = 0.0
-        for v in vs:
-            for key in ("total_households", "total_individu", "pbi_nas", "pbi_pemda",
-                        "rumah_rentan", "sanitasi_tidak_layak", "air_rentan",
-                        "hunian_rentan", "disabilitas"):
-                d[key] += int(v.get(key) or 0)
-            for dk, dv in (v.get("per_desil") or {}).items():
-                d["per_desil"][dk] = d["per_desil"].get(dk, 0) + dv
-            for rk, rv in (v.get("per_risk") or {}).items():
-                d["per_risk"][rk] = d["per_risk"].get(rk, 0) + rv
-            sum_risk += float(v.get("avg_risk") or 0) * int(v.get("total_households") or 0)
-        n = max(d["total_households"], 1)
-        d["avg_risk"] = round(sum_risk / n, 2)
-        d["desil_1_2"] = int(d["per_desil"].get("1", 0)) + int(d["per_desil"].get("2", 0))
-        d["persen_desil_1_2"] = round(d["desil_1_2"] * 100.0 / n, 2)
-        d["persen_rumah_rentan"] = round(d["rumah_rentan"] * 100.0 / n, 2)
-        await db.district_stats.find_one_and_update(
-            {"id": str(kode_kecamatan)}, {"$set": d}, upsert=True)
+        await refresh_agregat_for(db, kode_kelurahan, kode_kecamatan)
 
     async def sinkron_kode_baru(doc: Dict[str, Any]):
         """Pastikan kode baru dari input manual ikut terdaftar pada master kode."""
@@ -924,7 +931,8 @@ def build_router(db, current_user_dep, editor_dep, admin_dep) -> APIRouter:  # n
                 q["no_kk"] = {"$regex": s}
             else:
                 q["kepala_keluarga"] = {"$regex": s.upper()}
-        docs = await db.households.find(q).to_list(limit)
+        docs = [d for d in await db.households.find(q).to_list(limit)
+                if sosial.household_allowed(user, d)]
         labels = await _label_map()
         kode_fields = list(etl.CODED_FIELDS.keys())
         kolom = ["No", "Nomor KK", "Kepala Keluarga", "Alamat", "Provinsi",

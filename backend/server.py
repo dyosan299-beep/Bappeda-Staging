@@ -201,25 +201,31 @@ class ReviewInput(BaseModel):
 # ---------------- Auth dependency ----------------
 # ---------------- Role helpers ----------------
 SUPERADMIN_ROLES = ("superadmin", "admin")           # admin = legacy
-INPUT_ROLES = ("operator",)                           # boleh input data wilayah (masuk verifikasi)
+KECAMATAN_ROLES = ("operator", "operator_kecamatan")
+KELURAHAN_ROLE = "operator_kelurahan"
+INPUT_ROLES = KECAMATAN_ROLES                         # boleh input data wilayah (masuk verifikasi)
 VERIFIER_ROLES = ("verifikator", "admin_bappeda")
 # Peran (final):
-#   superadmin/admin -> Super Admin (kelola operator/verifikator/pimpinan; TIDAK membuat petugas)
-#   operator         -> Operator Kecamatan: membuat & mengelola akun PETUGAS di kecamatannya,
-#                       input data wilayahnya; hanya melihat data kecamatannya
-#   verifikator      -> memeriksa data/Verval hanya kecamatannya (wilayah="Kota Makassar" = seluruh kota)
-#   petugas          -> Petugas lapangan RT/RW (dibuat operator): hanya data publik + Verval & GeoTag
-#   pimpinan -> read-only, admin_opd -> Admin OPD, viewer -> hanya baca (akun lama tetap berlaku)
-WRITER_ROLES = SUPERADMIN_ROLES + VERIFIER_ROLES + INPUT_ROLES + (
-    "admin_opd", "operator_kecamatan", "operator_kelurahan")
+#   superadmin/admin        -> Super Admin / Admin Kota
+#   operator[_kecamatan]    -> Akun Kecamatan: kelola petugas RT/RW & kelurahan wilayahnya,
+#                              penugasan Verval, input data wilayah, serta persetujuan akhir Verval
+#   operator_kelurahan      -> Akun Kelurahan: periksa Verval tahap 1 di kelurahannya
+#   verifikator             -> memeriksa data/Verval wilayah (wilayah="Kota Makassar" = seluruh kota)
+#   petugas / operator_rt_rw-> Petugas lapangan RT/RW: data publik + Verval & GeoTag wilayahnya
+#   pimpinan / admin_opd / viewer -> lihat/admin OPD/hanya baca
+WRITER_ROLES = SUPERADMIN_ROLES + VERIFIER_ROLES + KECAMATAN_ROLES + (
+    "admin_opd", KELURAHAN_ROLE)
 ALL_ROLES = WRITER_ROLES + ("pimpinan", "viewer")
 # Operator RT/RW (GeoTag-Verval DTSEN, akun lama) & Petugas: BUKAN penulis data umum; hanya modul Verval.
 OPERATOR_RTRW_ROLE = "operator_rt_rw"
 PETUGAS_ROLE = "petugas"
-MANAGEABLE_ROLES = ("petugas", "operator", "verifikator", "pimpinan", "superadmin", "ngo", OPERATOR_RTRW_ROLE)
-# Peran yang boleh dibuat/diubah oleh superadmin (petugas HANYA oleh operator)
+MANAGEABLE_ROLES = (
+    "petugas", "operator", "operator_kecamatan", "operator_kelurahan",
+    "verifikator", "admin_bappeda", "pimpinan", "superadmin", "ngo", OPERATOR_RTRW_ROLE,
+)
+# Peran yang boleh dibuat/diubah oleh superadmin (petugas HANYA oleh kecamatan)
 SUPERADMIN_CREATABLE = tuple(r for r in MANAGEABLE_ROLES if r != PETUGAS_ROLE)
-WILAYAH_REQUIRED_ROLES = ("operator", "petugas")      # wajib kecamatan
+WILAYAH_REQUIRED_ROLES = ("operator", "operator_kecamatan", "operator_kelurahan", "petugas")      # wajib kecamatan
 
 
 # API yang boleh diakses peran NGO (least privilege). NGO TIDAK boleh mengakses data
@@ -277,15 +283,15 @@ async def admin_user(request: Request):
 
 
 async def user_manager(request: Request):
-    """Boleh mengelola akun: superadmin (semua peran kecuali petugas) & operator (petugas kecamatannya)."""
+    """Boleh mengelola akun: superadmin & akun Kecamatan (kelola petugas RT/RW dan kelurahan)."""
     user = await authmod.get_current_user(request, db)
     if user.get("status", "active") != "active":
         raise HTTPException(status_code=403, detail="Akun tidak aktif")
     if user.get("role") in SUPERADMIN_ROLES:
         return user
-    if user.get("role") == "operator":
+    if user.get("role") in KECAMATAN_ROLES:
         if not scope_mod.kecamatan_scope(user):
-            raise HTTPException(status_code=403, detail="Akun operator belum memiliki wilayah kecamatan")
+            raise HTTPException(status_code=403, detail="Akun kecamatan belum memiliki wilayah kecamatan")
         return user
     raise HTTPException(status_code=403, detail="Akses khusus superadmin / operator kecamatan")
 
@@ -514,18 +520,18 @@ async def _kelurahan_valid(kecamatan: str, kelurahan: str) -> bool:
 
 
 def _is_operator(u: dict) -> bool:
-    return u.get("role") == "operator"
+    return u.get("role") in KECAMATAN_ROLES
 
 
 async def _target_in_scope(manager: dict, user_id: str) -> dict:
-    """Operator hanya boleh menyentuh akun PETUGAS di kecamatannya."""
+    """Kecamatan hanya boleh mengelola akun Petugas RT/RW & Kelurahan di kecamatannya."""
     target = await db.users.find_one({"_id": _oid(user_id)})
     if not target:
         raise HTTPException(status_code=404, detail="Pengguna tidak ditemukan")
     if _is_operator(manager):
-        if target.get("role") != PETUGAS_ROLE or not scope_mod.same_kecamatan(
+        if target.get("role") not in (PETUGAS_ROLE, KELURAHAN_ROLE, OPERATOR_RTRW_ROLE) or not scope_mod.same_kecamatan(
                 scope_mod.kecamatan_scope(manager), target.get("wilayah")):
-            raise HTTPException(status_code=403, detail="Operator hanya dapat mengelola akun petugas di kecamatannya")
+            raise HTTPException(status_code=403, detail="Kecamatan hanya dapat mengelola akun Petugas RT/RW & Kelurahan di kecamatannya")
     return target
 
 
@@ -534,7 +540,7 @@ async def admin_list_users(admin: dict = Depends(user_manager)):
     users = await db.users.find().sort("created_at", -1).to_list(1000)
     if _is_operator(admin):
         kec = scope_mod.kecamatan_scope(admin)
-        users = [u for u in users if u.get("role") == PETUGAS_ROLE
+        users = [u for u in users if u.get("role") in (PETUGAS_ROLE, KELURAHAN_ROLE, OPERATOR_RTRW_ROLE)
                  and scope_mod.same_kecamatan(kec, u.get("wilayah"))]
     return [_serialize_user(u) for u in users]
 
@@ -565,19 +571,25 @@ async def admin_create_user(inp: AdminCreateUser, admin: dict = Depends(user_man
         "created_by": admin.get("email"),
     }
     if _is_operator(admin):
-        if role != PETUGAS_ROLE:
-            raise HTTPException(status_code=403, detail="Operator hanya dapat membuat akun Petugas")
+        if role not in (PETUGAS_ROLE, KELURAHAN_ROLE):
+            raise HTTPException(status_code=403, detail="Kecamatan hanya dapat membuat akun Petugas RT/RW atau Kelurahan")
         doc["wilayah"] = scope_mod.kecamatan_scope(admin)  # kecamatan operator (dipaksa)
     elif role == PETUGAS_ROLE:
         raise HTTPException(status_code=403, detail="Akun Petugas hanya dapat dibuat oleh Operator kecamatan terkait")
     elif role in WILAYAH_REQUIRED_ROLES and not wilayah:
         raise HTTPException(status_code=422, detail="Wilayah (kecamatan) wajib diisi untuk peran ini")
-    elif role == "verifikator" and not wilayah:
-        doc["wilayah"] = "Kota Makassar"
-    elif role in ("pimpinan", "superadmin", "ngo") and not wilayah:
+    elif role in ("verifikator", "admin_bappeda", "pimpinan", "superadmin", "ngo") and not wilayah:
         doc["wilayah"] = "Kota Makassar"
 
-    if role == PETUGAS_ROLE:
+    if role == KELURAHAN_ROLE:
+        kel = (inp.kelurahan or "").strip()
+        if not kel:
+            raise HTTPException(status_code=422, detail="Akun Kelurahan wajib memilih Kelurahan")
+        if not await _kelurahan_valid(doc["wilayah"], kel):
+            raise HTTPException(status_code=422, detail=f"Kelurahan '{kel}' tidak ada di Kecamatan {doc['wilayah']}")
+        doc.update({"kelurahan": kel, "rw": "", "rt": [],
+                    "kode_kelurahan": await _kode_kelurahan_for(doc["wilayah"], kel)})
+    elif role == PETUGAS_ROLE:
         kel = (inp.kelurahan or "").strip()
         rw = _norm_rt_rw(inp.rw)
         if not kel or not rw:
@@ -633,8 +645,9 @@ async def admin_update_user(user_id: str, inp: AdminUpdateUser, admin: dict = De
         if inp.role not in MANAGEABLE_ROLES:
             raise HTTPException(status_code=400, detail="Peran tidak valid")
         if _is_operator(admin):
-            raise HTTPException(status_code=403, detail="Operator tidak dapat mengubah peran akun")
-        if inp.role == PETUGAS_ROLE:
+            if inp.role not in (PETUGAS_ROLE, KELURAHAN_ROLE):
+                raise HTTPException(status_code=403, detail="Kecamatan hanya dapat menetapkan peran Petugas RT/RW atau Kelurahan")
+        elif inp.role == PETUGAS_ROLE:
             raise HTTPException(status_code=403, detail="Peran Petugas hanya dapat ditetapkan oleh Operator kecamatan")
         if str(admin["id"]) == user_id and inp.role not in SUPERADMIN_ROLES:
             raise HTTPException(status_code=400, detail="Tidak dapat menurunkan peran akun sendiri")
@@ -643,17 +656,27 @@ async def admin_update_user(user_id: str, inp: AdminUpdateUser, admin: dict = De
     role_final = updates.get("role", target.get("role"))
     if inp.wilayah is not None:
         if _is_operator(admin):
-            pass  # kecamatan petugas selalu kecamatan operator
+            pass  # kecamatan petugas/kelurahan selalu kecamatan operator
         else:
             wil = inp.wilayah.strip()
             if role_final in WILAYAH_REQUIRED_ROLES and not wil:
                 raise HTTPException(status_code=422, detail="Wilayah (kecamatan) wajib diisi untuk peran ini")
             updates["wilayah"] = wil or "Kota Makassar"
-    if role_final == PETUGAS_ROLE:
+    if role_final == KELURAHAN_ROLE:
+        kec = scope_mod.kecamatan_scope(admin) if _is_operator(admin) else updates.get("wilayah", target.get("wilayah"))
+        kel = inp.kelurahan.strip() if inp.kelurahan is not None else target.get("kelurahan", "")
+        if inp.kelurahan is not None or "wilayah" in updates or "role" in updates:
+            if not kel:
+                raise HTTPException(status_code=422, detail="Akun Kelurahan wajib memiliki Kelurahan")
+            if not await _kelurahan_valid(kec, kel):
+                raise HTTPException(status_code=422, detail=f"Kelurahan '{kel}' tidak ada di Kecamatan {kec}")
+            updates.update({"kelurahan": kel, "rw": "", "rt": [],
+                            "kode_kelurahan": await _kode_kelurahan_for(kec, kel)})
+    elif role_final == PETUGAS_ROLE:
         kec = scope_mod.kecamatan_scope(admin) if _is_operator(admin) else updates.get("wilayah", target.get("wilayah"))
         kel = inp.kelurahan.strip() if inp.kelurahan is not None else target.get("kelurahan", "")
         rw = _norm_rt_rw(inp.rw) if inp.rw is not None else target.get("rw", "")
-        if inp.kelurahan is not None or inp.rw is not None or inp.rt is not None or "wilayah" in updates:
+        if inp.kelurahan is not None or inp.rw is not None or inp.rt is not None or "wilayah" in updates or "role" in updates:
             if not kel or not rw:
                 raise HTTPException(status_code=422, detail="Petugas wajib memiliki Kelurahan dan RW")
             if not await _kelurahan_valid(kec, kel):

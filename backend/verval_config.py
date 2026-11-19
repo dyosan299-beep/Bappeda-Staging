@@ -15,24 +15,32 @@ from __future__ import annotations
 import os
 
 ROLE_OPERATOR = "operator_rt_rw"
-# Pelaksana GeoTag-Verval di lapangan: Operator RT/RW (akun lama) & PETUGAS (dibuat operator kecamatan,
-# wilayah ditentukan per Kelurahan + RW/RT pada profil akun).
+# Pelaksana GeoTag-Verval di lapangan: Petugas RT/RW & Operator RT/RW.
 OPERATOR_ROLES = (ROLE_OPERATOR, "petugas")
-# Pemeriksa (memutuskan): verifikator (ter-scope kecamatan) & admin bappeda & superadmin.
-REVIEWER_ROLES = ("verifikator", "admin_bappeda", "superadmin", "admin")
+# Pemeriksa berjenjang 2 tahap: Kelurahan (tahap 1) -> Kecamatan (persetujuan akhir) + Admin/Bappeda.
+KELURAHAN_REVIEWER_ROLES = ("operator_kelurahan",)
+KECAMATAN_REVIEWER_ROLES = ("operator", "operator_kecamatan", "verifikator")
+ADMIN_REVIEWER_ROLES = ("admin_bappeda", "superadmin", "admin")
+REVIEWER_ROLES = KELURAHAN_REVIEWER_ROLES + KECAMATAN_REVIEWER_ROLES + ADMIN_REVIEWER_ROLES
 # Hanya melihat hasil Verval (titik, foto, detail) tanpa memutuskan: pimpinan.
 VIEWER_ROLES = ("pimpinan",)
 HASIL_ROLES = REVIEWER_ROLES + VIEWER_ROLES
-PENUGASAN_ADMIN_ROLES = ("superadmin", "admin", "admin_bappeda")
-PETA_AGREGAT_ROLES = ("admin_opd", "operator", "operator_kecamatan", "operator_kelurahan", "viewer")
+PENUGASAN_ADMIN_ROLES = ("superadmin", "admin", "admin_bappeda", "operator", "operator_kecamatan")
+PETA_AGREGAT_ROLES = ("admin_opd", "viewer")
 
 IZIN = {
     "ambil_foto_dan_kirim": list(OPERATOR_ROLES),
-    "lihat_foto": ["pemilik (petugas/operator pelaksana)", *HASIL_ROLES],
-    "lihat_koordinat_presisi": ["pemilik (petugas/operator pelaksana)", *HASIL_ROLES],
-    "lihat_identitas_rumah_tangga": ["petugas (hanya sasaran RT/RW-nya, No. KK tersamar)",
-                                     *HASIL_ROLES],
-    "setujui_verval": list(REVIEWER_ROLES),
+    "daftar_warga_baru": list(OPERATOR_ROLES),
+    "lihat_foto": ["pemilik / Ketua RW wilayahnya", "Kelurahan wilayahnya", "Kecamatan wilayahnya", "Admin Bappeda / Superadmin / Pimpinan"],
+    "lihat_koordinat_presisi": ["pemilik / Ketua RW wilayahnya", "Kelurahan wilayahnya", "Kecamatan wilayahnya", "Admin Bappeda / Superadmin / Pimpinan"],
+    "lihat_identitas_rumah_tangga": [
+        "petugas/RW (wilayahnya, detail lengkap untuk pencocokan NIK)",
+        "Kelurahan (kelurahannya, detail lengkap)",
+        "Kecamatan (kecamatannya, detail lengkap)",
+        "Admin Bappeda / Superadmin (seluruh kota, detail lengkap)",
+    ],
+    "periksa_tahap_1_kelurahan": list(KELURAHAN_REVIEWER_ROLES),
+    "setujui_akhir_verval": list(KECAMATAN_REVIEWER_ROLES + ADMIN_REVIEWER_ROLES),
     "kelola_penugasan": list(PENUGASAN_ADMIN_ROLES),
     "lihat_rekap_peta": list(PETA_AGREGAT_ROLES),
 }
@@ -167,12 +175,14 @@ KESIMPULAN = (
 )
 
 # ---------------------------------------------------------------- Status alur
-STATUS = ("draft", "terkirim", "perlu_perbaikan", "disetujui", "ditolak")
-STATUS_TERBUKA = ("draft", "terkirim", "perlu_perbaikan")
+STATUS = ("draft", "menunggu_kelurahan", "menunggu_kecamatan", "perlu_perbaikan", "disetujui", "ditolak", "terkirim")
+STATUS_TERBUKA = ("draft", "menunggu_kelurahan", "menunggu_kecamatan", "terkirim", "perlu_perbaikan")
 STATUS_DAPAT_DIUBAH = ("draft", "perlu_perbaikan")
-KEPUTUSAN_REVIEW = ("disetujui", "ditolak", "perlu_perbaikan")
+KEPUTUSAN_KELURAHAN = ("teruskan_kecamatan", "perlu_perbaikan", "ditolak")
+KEPUTUSAN_KECAMATAN = ("disetujui", "perlu_perbaikan", "ditolak")
+KEPUTUSAN_REVIEW = ("teruskan_kecamatan", "disetujui", "ditolak", "perlu_perbaikan")
 
-GPS_STATUS = ("memenuhi", "akurasi_rendah", "izin_ditolak", "tidak_tersedia", "belum_direkam")
+GPS_STATUS = ("memenuhi", "pin_manual", "akurasi_rendah", "izin_ditolak", "tidak_tersedia", "belum_direkam")
 JENIS_FOTO = ("rumah_depan", "rumah_samping", "objek_pendukung", "lainnya")
 
 
@@ -191,7 +201,7 @@ def _env_int(name: str, default: int) -> int:
 
 
 def gps_max_akurasi_m() -> float:
-    return _env_float("VERVAL_GPS_MAX_AKURASI_M", 5.0)
+    return _env_float("VERVAL_GPS_MAX_AKURASI_M", 30.0)
 
 
 def izinkan_kirim_tanpa_gps() -> bool:
@@ -219,6 +229,9 @@ def public_config() -> dict:
         "kondisi_rentan": {k: v for k, v in KONDISI_RENTAN.items()},
         "kesimpulan": list(KESIMPULAN),
         "status": list(STATUS),
+        "keputusan_kelurahan": list(KEPUTUSAN_KELURAHAN),
+        "keputusan_kecamatan": list(KEPUTUSAN_KECAMATAN),
+        "izinkan_pin_manual": True,
         "jenis_foto": list(JENIS_FOTO),
         "gps_max_akurasi_m": gps_max_akurasi_m(),
         "izinkan_kirim_tanpa_gps": izinkan_kirim_tanpa_gps(),

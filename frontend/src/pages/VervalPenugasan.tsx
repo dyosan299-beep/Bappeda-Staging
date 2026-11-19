@@ -5,13 +5,15 @@ import { api, errMsg, fmtWaktu } from "@/features/verval/api";
 import { Card, Field, INPUT, UjiBadge } from "@/features/verval/ui";
 import { BTN_PRIMARY, BTN_SM, BTN_SM_PRIMARY } from "@/features/a11y/ui";
 
-/** Penugasan wilayah RT/RW & penetapan KK sasaran — Super Admin / Admin Bappeda. */
+/** Penugasan wilayah RT/RW & penetapan KK sasaran — Kecamatan / Admin Bappeda / Superadmin. */
 export default function VervalPenugasan() {
   const [cfg, setCfg] = useState<any>(null);
   const [ops, setOps] = useState<any[]>([]);
   const [wil, setWil] = useState<any[]>([]);
+  const [wilLoaded, setWilLoaded] = useState(false);
   const [data, setData] = useState<any>({ penugasan: [], sasaran: [] });
   const [f, setF] = useState<any>({ user_id: "", kode_kelurahan: "", rw: "", rt: [], lintas_wilayah: false, dasar_penugasan: "", berlaku_mulai: "", berlaku_sampai: "" });
+  const [rtManual, setRtManual] = useState("");
   const [cari, setCari] = useState({ kode_kelurahan: "", search: "" });
   const [hh, setHh] = useState<any>(null);
   const [sas, setSas] = useState<any>({ user_id: "", dasar_penugasan: "", berlaku_sampai: "" });
@@ -22,7 +24,7 @@ export default function VervalPenugasan() {
   useEffect(() => {
     api.get("/verval/konfigurasi").then((r) => setCfg(r.data)).catch(() => {});
     api.get("/verval/operator").then((r) => setOps(r.data.items)).catch(() => {});
-    api.get("/verval/wilayah-dtsen").then((r) => setWil(r.data.items)).catch(() => {});
+    api.get("/verval/wilayah-dtsen").then((r) => setWil(r.data.items)).catch(() => {}).finally(() => setWilLoaded(true));
     load();
   }, [load]);
 
@@ -33,7 +35,7 @@ export default function VervalPenugasan() {
     e.preventDefault();
     try {
       await api.post("/verval/penugasan", { ...f, berlaku_mulai: f.berlaku_mulai || null, berlaku_sampai: f.berlaku_sampai || null });
-      toast.success("Penugasan disimpan"); load();
+      toast.success("Penugasan disimpan"); setRtManual(""); load();
     } catch (er) { toast.error(errMsg(er)); }
   };
   const cabut = async (jenis: "penugasan" | "sasaran-kk", id: string) => {
@@ -59,8 +61,16 @@ export default function VervalPenugasan() {
   return (
     <div className="space-y-4" data-testid="verval-penugasan-page">
       <Card>
-        <p className="font-head text-lg font-extrabold"><UserCheck className="mr-1 inline h-5 w-5 text-[#117A69]" />Penugasan Operator RT/RW — GeoTag Verval</p>
-        <p className="text-xs text-slate-600">Penugasan hanya memberi hak pengambilan GeoTag kepada operator. Pengelola penugasan tidak melakukan Verval. Semua perubahan tercatat di audit log.</p>
+        <p className="font-head text-lg font-extrabold">
+          <UserCheck className="mr-1 inline h-5 w-5 text-[#117A69]" />
+          Penugasan Operator RT/RW — GeoTag Verval
+          {cfg?.scope_kecamatan && (
+            <span className="ml-2 rounded-full bg-[#117A69]/10 px-2.5 py-0.5 text-xs font-bold text-[#0f5f52]" data-testid="penugasan-scope">
+              Kec. {cfg.scope_kecamatan}
+            </span>
+          )}
+        </p>
+        <p className="text-xs text-slate-600">Penugasan memberi hak Verval &amp; GeoTag kepada petugas wilayah. Selama kolom RT/RW DTSEN masih kosong, petugas tetap dapat mencari sasaran sesuai kelurahan penugasannya.</p>
         {cfg && (
           <div className="mt-3 grid gap-2 text-xs sm:grid-cols-3" data-testid="verval-status-konfigurasi">
             <p className={`rounded p-2 ${cfg.modul_siap ? "bg-emerald-50" : "bg-rose-50"}`}>Referensi DTSEN stabil: <b>{cfg.modul_siap ? "aktif" : "VERVAL_REF_SECRET belum diatur"}</b></p>
@@ -74,18 +84,35 @@ export default function VervalPenugasan() {
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
           <h2 className="text-sm font-bold">1. Penugasan wilayah RT/RW</h2>
-          <p className="text-[11px] text-slate-500">RW/RT yang tersedia berasal dari kolom RT/RW eksplisit hasil impor DTSEN (tidak disimpulkan dari alamat).</p>
+          <p className="text-[11px] text-slate-500">Daftar RW/RT otomatis diambil dari kolom RT/RW DTSEN; jika masih kosong di DTSEN, nomor RW/RT dapat diketik manual.</p>
           <form className="mt-3 grid gap-2 sm:grid-cols-2" onSubmit={simpan}>
             <Field label="Operator RT/RW"><select required className={INPUT} value={f.user_id} onChange={(e) => setF({ ...f, user_id: e.target.value })} data-testid="pen-operator">
               <option value="">Pilih…</option>{ops.map((o) => <option key={o.id} value={o.id}>{o.name} ({o.email})</option>)}</select></Field>
-            <Field label="Kelurahan (DTSEN)"><select required className={INPUT} value={f.kode_kelurahan} onChange={(e) => setF({ ...f, kode_kelurahan: e.target.value, rw: "", rt: [] })} data-testid="pen-kelurahan">
-              <option value="">Pilih…</option>{wil.map((w) => <option key={w.kode_kelurahan} value={w.kode_kelurahan}>{w.kelurahan} — {w.kecamatan} ({w.kk_dengan_rt_rw}/{w.total_kk} KK ber-RT/RW)</option>)}</select></Field>
-            <Field label="RW"><select required className={INPUT} value={f.rw} onChange={(e) => setF({ ...f, rw: e.target.value, rt: [] })} data-testid="pen-rw">
-              <option value="">Pilih…</option>{(kel?.rw || []).map((x: any) => <option key={x.rw} value={x.rw}>RW {x.rw}</option>)}</select></Field>
-            <Field label="RT (kosong = seluruh RT)"><div className="flex flex-wrap gap-2 pt-1" data-testid="pen-rt">
-              {(rwItem?.rt || []).map((rt: string) => (
-                <label key={rt} className="flex items-center gap-1 text-xs"><input type="checkbox" checked={f.rt.includes(rt)} onChange={(e) => setF({ ...f, rt: e.target.checked ? [...f.rt, rt] : f.rt.filter((x: string) => x !== rt) })} />RT {rt}</label>
-              ))}{!rwItem && <span className="text-[11px] text-slate-400">pilih RW</span>}</div></Field>
+            <Field label="Kelurahan (DTSEN)"><select required className={INPUT} value={f.kode_kelurahan} onChange={(e) => { setF({ ...f, kode_kelurahan: e.target.value, rw: "", rt: [] }); setRtManual(""); }} data-testid="pen-kelurahan">
+              <option value="">{!wilLoaded ? "Memuat…" : "Pilih…"}</option>{wil.map((w) => <option key={w.kode_kelurahan} value={w.kode_kelurahan}>{w.kelurahan} — {w.kecamatan} ({w.kk_dengan_rt_rw}/{w.total_kk} KK ber-RT/RW)</option>)}</select></Field>
+            <Field label="RW">
+              {kel && (!kel.rw || kel.rw.length === 0) ? (
+                <input required className={INPUT} placeholder="cth. 01" value={f.rw} onChange={(e) => setF({ ...f, rw: e.target.value })} data-testid="pen-rw" />
+              ) : (
+                <select required className={INPUT} value={f.rw} onChange={(e) => setF({ ...f, rw: e.target.value, rt: [] })} data-testid="pen-rw">
+                  <option value="">Pilih…</option>{(kel?.rw || []).map((x: any) => <option key={x.rw} value={x.rw}>RW {x.rw}</option>)}
+                </select>
+              )}
+            </Field>
+            <Field label="RT (kosong = seluruh RT)">
+              {kel && (!kel.rw || kel.rw.length === 0) ? (
+                <div data-testid="pen-rt">
+                  <input className={INPUT} placeholder="cth. 01, 02 (kosong = seluruh RT)" value={rtManual}
+                    onChange={(e) => { const v = e.target.value; setRtManual(v); setF({ ...f, rt: v.split(/[,\s]+/).map((x: string) => x.trim()).filter(Boolean) }); }} />
+                </div>
+              ) : (
+                <div className="flex flex-wrap gap-2 pt-1" data-testid="pen-rt">
+                  {(rwItem?.rt || []).map((rt: string) => (
+                    <label key={rt} className="flex items-center gap-1 text-xs"><input type="checkbox" checked={f.rt.includes(rt)} onChange={(e) => setF({ ...f, rt: e.target.checked ? [...f.rt, rt] : f.rt.filter((x: string) => x !== rt) })} />RT {rt}</label>
+                  ))}{!rwItem && <span className="text-[11px] text-slate-400">pilih RW</span>}
+                </div>
+              )}
+            </Field>
             <Field label="Berlaku mulai"><input type="date" className={INPUT} value={f.berlaku_mulai} onChange={(e) => setF({ ...f, berlaku_mulai: e.target.value })} /></Field>
             <Field label="Berlaku sampai"><input type="date" className={INPUT} value={f.berlaku_sampai} onChange={(e) => setF({ ...f, berlaku_sampai: e.target.value })} data-testid="pen-sampai" /></Field>
             <label className="flex items-center gap-2 text-xs sm:col-span-2"><input type="checkbox" checked={f.lintas_wilayah} onChange={(e) => setF({ ...f, lintas_wilayah: e.target.checked })} data-testid="pen-lintas" />Penugasan lintas wilayah (wajib dasar penugasan & tanggal berakhir)</label>
@@ -100,9 +127,9 @@ export default function VervalPenugasan() {
           <div className="mt-3 grid gap-2 sm:grid-cols-2">
             <Field label="Operator"><select className={INPUT} value={sas.user_id} onChange={(e) => setSas({ ...sas, user_id: e.target.value })} data-testid="sas-operator">
               <option value="">Pilih…</option>{ops.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}</select></Field>
-            <Field label="Dasar penugasan (wajib bila lintas wilayah)"><input className={INPUT} value={sas.dasar_penugasan} onChange={(e) => setSas({ ...sas, dasar_penugasan: e.target.value })} data-testid="sas-dasar" /></Field>
+            <Field label="Dasar penugasan"><input className={INPUT} placeholder="Wajib bila lintas wilayah" value={sas.dasar_penugasan} onChange={(e) => setSas({ ...sas, dasar_penugasan: e.target.value })} data-testid="sas-dasar" /></Field>
             <Field label="Kelurahan"><select className={INPUT} value={cari.kode_kelurahan} onChange={(e) => setCari({ ...cari, kode_kelurahan: e.target.value })} data-testid="sas-kelurahan">
-              <option value="">Semua</option>{wil.map((w) => <option key={w.kode_kelurahan} value={w.kode_kelurahan}>{w.kelurahan}</option>)}</select></Field>
+              <option value="">{!wilLoaded ? "Memuat…" : "Semua"}</option>{wil.map((w) => <option key={w.kode_kelurahan} value={w.kode_kelurahan}>{w.kelurahan}</option>)}</select></Field>
             <Field label="Cari nama / No. KK"><div className="flex gap-1"><input className={INPUT} value={cari.search} onChange={(e) => setCari({ ...cari, search: e.target.value })} data-testid="sas-search" />
               <button type="button" className={BTN_SM_PRIMARY} onClick={cariKK} data-testid="sas-cari">Cari</button></div></Field>
           </div>
