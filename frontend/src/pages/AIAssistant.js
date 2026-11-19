@@ -320,7 +320,7 @@ export default function AIAssistant() {
               )
             )}
             {error && (
-              <div className="flex items-center gap-2 rounded-md border-2 border-primary bg-primary/5 p-3 text-sm font-semibold text-primary" data-testid="ai-error">
+              <div className="flex items-center gap-2 rounded-md border-2 border-destructive bg-destructive/5 p-3 text-sm font-semibold text-destructive" data-testid="ai-error">
                 <AlertTriangle className="h-4 w-4" /> {error}
               </div>
             )}
@@ -346,7 +346,7 @@ export default function AIAssistant() {
                 data-testid="ai-send-btn"
                 onClick={() => ask()}
                 disabled={loading || question.trim().length < 3}
-                className="inline-flex shrink-0 items-center gap-1.5 rounded-md bg-primary px-3.5 py-2.5 text-sm font-bold text-primary-foreground hover:bg-[hsl(0_72%_43%)] focus:outline-none disabled:opacity-60 sm:gap-2 sm:px-5 sm:py-3"
+                className="inline-flex shrink-0 items-center gap-1.5 rounded-md bg-primary px-3.5 py-2.5 text-sm font-bold text-primary-foreground hover:bg-[#0E6456] focus:outline-none disabled:opacity-60 sm:gap-2 sm:px-5 sm:py-3"
               >
                 {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                 Tanya

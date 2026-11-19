@@ -239,16 +239,15 @@ export default function A11yAssistant() {
 
   return (
     <>
-      {/* ---------------- Tombol melayang */}
+      {/* ---------------- Tombol melayang (ikon saja agar ringkas, Alt+A tetap aktif) */}
       <button type="button" onClick={() => setBuka(!buka)} aria-expanded={buka} aria-controls="a11y-panel" data-testid="a11y-assistant-btn"
+        title="Asisten Aksesibilitas (Alt + A)"
         aria-label="Asisten Aksesibilitas: pengaturan tampilan, bantuan suara untuk disabilitas buta, dan subtitle untuk disabilitas tuli (Alt + A)" data-a11y-no-read
-        className={`fixed bottom-[max(1rem,env(safe-area-inset-bottom))] right-[max(1rem,env(safe-area-inset-right))] z-[900] inline-flex min-h-11 min-w-11 items-center gap-2 rounded-full py-1.5 pl-1.5 pr-1.5 text-white shadow-[0_14px_40px_rgba(17,122,105,.30)] ring-1 ring-white/15 transition-colors md:pr-4 ${buka ? "bg-[#0B4F45]" : "bg-[#117A69] hover:bg-[#0B4F45]"} ${FR}`}>
-        <span className="relative grid h-9 w-9 place-items-center rounded-full bg-white/15 ring-1 ring-white/20" aria-hidden="true">
-          {buka ? <X className="h-5 w-5" /> : <Accessibility className="h-5 w-5" />}
-          {a.status !== "idle" && <span className="absolute -right-0.5 -top-0.5 h-3 w-3 rounded-full bg-[#F4B63A] ring-2 ring-[#117A69]" />}
+        className={`fixed bottom-[max(1rem,env(safe-area-inset-bottom))] right-[max(1rem,env(safe-area-inset-right))] z-[900] grid h-12 w-12 place-items-center rounded-2xl shadow-[0_10px_30px_rgba(35,47,62,0.18)] ring-1 transition-all ${buka ? "bg-[#117A69] text-white ring-[#0E6456]" : "bg-white text-[#117A69] ring-slate-200 hover:bg-[#E6FAF6] hover:ring-[#117A69]/35"} ${FR}`}>
+        <span className="relative grid place-items-center" aria-hidden="true">
+          {buka ? <X className="h-5 w-5" /> : <Accessibility className="h-6 w-6" />}
+          {a.status !== "idle" && <span className={`absolute -right-2 -top-2 h-2.5 w-2.5 rounded-full bg-[#F4B63A] ring-2 ${buka ? "ring-[#117A69]" : "ring-white"}`} />}
         </span>
-        <span className="hidden text-sm font-semibold tracking-wide md:inline">Aksesibilitas</span>
-        <kbd className="ml-0.5 hidden rounded-full bg-white/12 px-2 py-0.5 font-mono text-[10.5px] font-medium ring-1 ring-white/15 lg:inline-flex">Alt+A</kbd>
       </button>
 
       {/* ---------------- Panel */}

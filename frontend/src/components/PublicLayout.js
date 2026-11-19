@@ -56,23 +56,23 @@ export default function PublicLayout({ children, fullBleed = false }) {
           <Link to="/" aria-label="Beranda PETA INKLUSI" data-testid="public-logo" className="min-w-0 shrink overflow-hidden">
             <BrandLogo className="h-8 w-8 sm:h-10 sm:w-10" withText />
           </Link>
-          <nav className="ml-auto hidden flex-nowrap items-center gap-0.5 lg:flex xl:gap-1" aria-label="Navigasi publik">
+          <nav className="ml-auto hidden flex-nowrap items-center gap-1 lg:flex xl:gap-1.5" aria-label="Navigasi publik">
             {NAV.map((n) => (
               <NavLink key={n.to} to={n.to} end={n.end}
                 data-testid={`pubnav-${n.to.replace(/\W+/g, "-") || "home"}`}
-                className={({ isActive }) => `inline-flex min-h-10 items-center whitespace-nowrap rounded-full px-2 py-2 text-xs font-semibold transition-colors xl:px-3.5 xl:text-sm ${FR} ${
-                  isActive ? "bg-[#6FE3CF] text-[#232F3E] shadow-[0_6px_16px_rgba(111,227,207,.25)]" : "text-slate-200 hover:bg-white/10 hover:text-white"}`}>
+                className={({ isActive }) => `inline-flex min-h-10 items-center whitespace-nowrap rounded-full px-3 py-2 text-xs font-semibold transition-colors xl:px-4 xl:text-sm ${FR} ${
+                  isActive ? "bg-[#6FE3CF] text-[#232F3E]" : "text-slate-200 hover:bg-white/10 hover:text-white active:bg-white/15"}`}>
                 {n.label}
               </NavLink>
             ))}
           </nav>
           <button type="button" data-testid="public-login-btn"
             onClick={() => navigate(user ? "/dashboard" : "/login")}
-            className={`ml-auto inline-flex min-h-11 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full bg-white px-2.5 py-2 text-xs font-bold text-[#232F3E] ring-1 ring-white/20 transition-colors hover:bg-[#E6FAF6] active:bg-[#D2F4EC] sm:gap-2 sm:px-4 sm:text-sm lg:ml-2 lg:px-3 lg:text-xs xl:ml-3 xl:px-4 xl:text-sm ${FR}`}>
+            className={`ml-auto inline-flex min-h-11 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full bg-white px-3 py-2 text-xs font-bold text-[#232F3E] transition-colors hover:bg-[#E6FAF6] active:bg-[#D2F4EC] sm:gap-2 sm:px-4 sm:text-sm lg:ml-2 lg:min-h-10 lg:px-3 lg:text-xs xl:ml-3 xl:px-4 xl:text-sm ${FR}`}>
             {user ? <LayoutDashboard className="h-4 w-4 shrink-0" aria-hidden="true" /> : <LogIn className="h-4 w-4 shrink-0" aria-hidden="true" />}
             <span className="max-[379px]:sr-only">{user ? "Dashboard" : "Masuk"}</span>
           </button>
-          <button type="button" ref={toggleRef} className={`inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/10 ring-1 ring-white/15 transition-colors hover:bg-white/20 lg:hidden ${FR}`} onClick={() => setOpen(!open)} aria-label={open ? "Tutup menu" : "Buka menu"}
+          <button type="button" ref={toggleRef} className={`inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/10 ring-1 ring-white/15 transition-colors hover:bg-white/15 active:bg-white/20 lg:hidden ${FR}`} onClick={() => setOpen(!open)} aria-label={open ? "Tutup menu" : "Buka menu"}
             aria-expanded={open} aria-controls="public-mobile-nav" data-testid="public-menu-toggle">
             {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
@@ -95,25 +95,23 @@ export default function PublicLayout({ children, fullBleed = false }) {
       <A11yAssistant />
       {!fullBleed && (
         <footer className="bg-[#1A2330] pb-[calc(4.5rem+env(safe-area-inset-bottom))] text-slate-300" data-testid="public-footer">
-          <div className="mx-auto grid max-w-7xl gap-6 px-4 py-8 sm:grid-cols-2 md:grid-cols-3">
+          <div className="mx-auto grid max-w-7xl gap-6 px-4 py-10 sm:grid-cols-2 sm:px-6 md:grid-cols-3">
             <div>
               <BrandLogo className="h-12 w-12" withText />
-              <p className="mt-3 text-sm text-slate-400">
-                Platform data sosial terintegrasi untuk perencanaan program inklusif Kota Makassar:
-                Disabilitas, Stunting, Anak Tidak Sekolah, dan Kemiskinan.
+              <p className="mt-3 text-sm leading-relaxed text-slate-400">
+                Data sosial terpadu Kota Makassar untuk Disabilitas, Stunting, Anak Tidak Sekolah, dan Kemiskinan.
               </p>
             </div>
             <div>
-              <h2 className="font-head text-sm font-bold uppercase tracking-wider text-[#6FE3CF]">Tautan</h2>
+              <h2 className="font-head text-sm font-bold text-[#6FE3CF]">Tautan</h2>
               <ul className="mt-2 space-y-1 text-sm">
                 {NAV.slice(1).map((n) => <li key={n.to}><Link className={`inline-flex min-h-8 items-center rounded transition-colors hover:text-[#6FE3CF] ${FR}`} to={n.to}>{n.label}</Link></li>)}
               </ul>
             </div>
             <div>
-              <h2 className="font-head text-sm font-bold uppercase tracking-wider text-[#6FE3CF]">Privasi Data</h2>
-              <p className="mt-2 text-sm text-slate-400">
-                Halaman publik hanya menampilkan data agregat per wilayah. NIK, nama, alamat, email, dan
-                nomor telepon tidak pernah ditampilkan kepada publik.
+              <h2 className="font-head text-sm font-bold text-[#6FE3CF]">Privasi data</h2>
+              <p className="mt-2 text-sm leading-relaxed text-slate-400">
+                Halaman publik hanya menampilkan data agregat per wilayah. Server tidak mengirimkan NIK, nama, alamat, email, atau nomor telepon kepada pengunjung umum.
               </p>
               <p className="mt-3 text-xs text-slate-400">© {new Date().getFullYear()} Bappeda Kota Makassar</p>
             </div>

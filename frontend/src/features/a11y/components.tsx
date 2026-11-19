@@ -20,10 +20,10 @@ export function SpeakMini({ text, label, testid, tone = "light", variant = "icon
   const warna = aktif
     ? "bg-[#117A69] text-white ring-[#117A69] shadow-[0_8px_20px_rgba(17,122,105,.28)]"
     : dark
-      ? "bg-white/10 text-white ring-white/25 hover:bg-white/20"
+      ? "bg-white/10 text-white ring-white/25 hover:bg-white/15 active:bg-white/20"
       : "bg-white text-[#117A69] ring-slate-200 hover:bg-[#E6FAF6] hover:text-[#0B4F45] hover:ring-[#117A69]/30 active:bg-[#D2F4EC]";
   const bentuk = variant === "pill"
-    ? "min-h-11 max-w-full gap-2 rounded-full py-1.5 pl-1.5 pr-3 text-sm font-semibold"
+    ? "min-h-11 max-w-full gap-2 rounded-full py-1.5 pl-2 pr-4 text-sm font-semibold"
     : "h-10 w-10 shrink-0 rounded-full";
   return (
     <button type="button" data-testid={testid}

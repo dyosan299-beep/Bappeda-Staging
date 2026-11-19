@@ -9,20 +9,32 @@ import { BTN_PRIMARY } from "@/features/a11y/ui";
 export function Tentang() {
   return (
     <PublicLayout>
-      <div className="mx-auto max-w-4xl space-y-6 px-4 py-10">
+      <div className="mx-auto max-w-4xl space-y-6 px-4 py-10 sm:px-6">
         <h1 className="font-head text-3xl font-extrabold text-[#232F3E]">Tentang PETA INKLUSI</h1>
-        <p className="text-slate-700">PETA INKLUSI adalah platform Bappeda Kota Makassar yang menyajikan data sosial secara terintegrasi untuk mendukung analisis dan perencanaan program pada empat kategori utama: <b>Disabilitas, Stunting, Anak Tidak Sekolah (ATS), dan Kemiskinan</b>. Seluruh kategori memakai master wilayah yang sama: Kota Makassar → Kecamatan → Kelurahan.</p>
-        <section><h2 className="font-head text-xl font-bold text-[#117A69]">Siapa yang dapat menggunakan?</h2>
-          <ul className="mt-2 list-disc space-y-1 pl-6 text-slate-700">
-            <li><b>Publik</b> — melihat dashboard, peta, dan flow sistem berisi data agregat tanpa login.</li>
-            <li><b>NGO</b> — mendaftar, lalu setelah diverifikasi dapat mengajukan dan memantau inquiry program.</li>
-            <li><b>Operator</b> — mengelola data wilayah sesuai kewenangan (data pribadi tersamarkan).</li>
-            <li><b>Admin & Super Admin</b> — memverifikasi data, memproses inquiry, mengelola pengguna dan audit.</li>
-          </ul></section>
-        <section><h2 className="font-head text-xl font-bold text-[#117A69]">Perlindungan data pribadi</h2>
-          <p className="mt-2 text-slate-700">NIK, nama, alamat, email, dan nomor telepon dimasking di sisi server (contoh NIK: 7371********1234, email: gu****@gmail.com, telepon: 0812******89). API publik hanya mengembalikan agregat. Akses data individu dibatasi peran (RBAC) dan setiap akses data sensitif, login, impor, maupun perubahan status inquiry tercatat di audit log.</p></section>
-        <section><h2 className="font-head text-xl font-bold text-[#117A69]">Sumber data</h2>
-          <p className="mt-2 text-slate-700">Matriks Bappeda (rekap per kecamatan), DTSEN (rumah tangga Kec. Makassar & Tallo), data balita stunting 2026 (Kec. Makassar & Tallo), rekap disabilitas per kelurahan, Matriks ATS, dan batas wilayah PETA_DASAR. Data yang belum tersedia ditandai jelas sebagai “belum ada data”.</p></section>
+        <p className="leading-relaxed text-slate-700">
+          PETA INKLUSI menyajikan data sosial Bappeda Kota Makassar untuk analisis dan perencanaan program pada empat kategori utama: <b>Disabilitas, Stunting, Anak Tidak Sekolah (ATS), dan Kemiskinan</b>. Seluruh kategori memakai master wilayah yang sama mulai dari Kota Makassar, kecamatan, sampai kelurahan.
+        </p>
+        <section>
+          <h2 className="font-head text-xl font-bold text-[#117A69]">Pengguna portal</h2>
+          <ul className="mt-2 list-disc space-y-1.5 pl-6 text-slate-700">
+            <li><b>Publik</b> dapat melihat dashboard, peta tematik, dan flow sistem berisi data agregat tanpa masuk akun.</li>
+            <li><b>NGO</b> dapat mendaftar akun, lalu mengajukan dan memantau inquiry program setelah akun diverifikasi.</li>
+            <li><b>Operator</b> mengelola data wilayah sesuai kewenangan dengan data pribadi yang disamarkan.</li>
+            <li><b>Admin dan Super Admin</b> memverifikasi data, memproses inquiry, mengelola pengguna, dan memeriksa log audit.</li>
+          </ul>
+        </section>
+        <section>
+          <h2 className="font-head text-xl font-bold text-[#117A69]">Perlindungan data pribadi</h2>
+          <p className="mt-2 leading-relaxed text-slate-700">
+            Server menyamarkan NIK, nama, alamat, email, dan nomor telepon (contoh NIK menjadi 7371********1234, email menjadi gu****@gmail.com, telepon menjadi 0812******89). Endpoint publik hanya mengembalikan data agregat. Server membatasi akses data individu berdasarkan peran dan mencatat setiap akses data sensitif, proses masuk akun, impor data, dan perubahan status inquiry di log audit.
+          </p>
+        </section>
+        <section>
+          <h2 className="font-head text-xl font-bold text-[#117A69]">Sumber data</h2>
+          <p className="mt-2 leading-relaxed text-slate-700">
+            Sumber data meliputi Matriks Bappeda per kecamatan, DTSEN rumah tangga Kecamatan Makassar dan Tallo, data balita stunting tahun 2026 Kecamatan Makassar dan Tallo, rekap disabilitas per kelurahan, Matriks ATS, serta peta batas wilayah PETA_DASAR. Wilayah yang belum memiliki data ditandai dengan label "belum ada data".
+          </p>
+        </section>
         <Link to="/login?mode=ngo" className={BTN_PRIMARY} data-testid="tentang-daftar-ngo">Daftar sebagai NGO</Link>
       </div>
     </PublicLayout>

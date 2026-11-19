@@ -131,14 +131,14 @@ export default function Verifikasi() {
                     <button
                       data-testid={`reject-change-${it.id}`}
                       onClick={() => reject(it.id)}
-                      className="inline-flex items-center gap-1.5 rounded-md border-2 border-primary px-4 py-2 text-sm font-semibold text-primary hover:bg-primary hover:text-primary-foreground focus:outline-none"
+                      className="inline-flex items-center gap-1.5 rounded-md border-2 border-destructive px-4 py-2 text-sm font-semibold text-destructive hover:bg-destructive hover:text-destructive-foreground focus:outline-none"
                     >
                       <X className="h-4 w-4" /> Tolak
                     </button>
                   </div>
                 )}
                 {it.status !== "pending" && (
-                  <span className={`rounded-full px-3 py-1 text-xs font-bold ${it.status === "approved" ? "bg-[hsl(160_84%_27%)] text-white" : "bg-primary text-primary-foreground"}`}>
+                  <span className={`rounded-full px-3 py-1 text-xs font-bold ${it.status === "approved" ? "bg-primary text-primary-foreground" : "bg-destructive text-destructive-foreground"}`}>
                     {it.status === "approved" ? "Disetujui" : "Ditolak"} oleh {it.reviewed_by || "-"}
                   </span>
                 )}

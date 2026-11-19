@@ -300,14 +300,14 @@ export default function KelolaPetugas() {
             )}
           </div>
           <button data-testid="submit-new-user" type="submit" disabled={busy}
-            className="mt-5 inline-flex min-h-11 items-center gap-2 rounded-md bg-primary px-6 py-2.5 font-semibold text-primary-foreground hover:bg-[hsl(0_72%_43%)] focus:outline-none disabled:opacity-60">
+            className="mt-5 inline-flex min-h-11 items-center gap-2 rounded-md bg-primary px-6 py-2.5 font-semibold text-primary-foreground hover:bg-[#0E6456] focus:outline-none disabled:opacity-60">
             <UserPlus className="h-5 w-5" /> {busy ? "Menyimpan…" : "Tambahkan"}
           </button>
         </form>
       )}
 
       {loadErr && (
-        <div className="rounded-lg border-2 border-primary/40 bg-primary/5 p-4 text-sm" data-testid="users-error">
+        <div className="rounded-lg border-2 border-destructive/40 bg-destructive/5 p-4 text-sm text-destructive" data-testid="users-error">
           {loadErr} <button onClick={load} className="ml-2 font-bold underline">Coba lagi</button>
         </div>
       )}
@@ -560,7 +560,7 @@ export default function KelolaPetugas() {
             <AlertDialogCancel className="min-h-11">Batal</AlertDialogCancel>
             <AlertDialogAction
               data-testid="confirm-dialog-action"
-              className="min-h-11 bg-primary text-primary-foreground hover:bg-[hsl(0_72%_43%)]"
+              className="min-h-11 bg-destructive text-destructive-foreground hover:bg-destructive/90"
               onClick={() => {
                 if (!confirm) return;
                 if (confirm.kind === "delete") remove(confirm.user.id);

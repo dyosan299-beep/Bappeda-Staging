@@ -153,17 +153,17 @@ export default function DataEntry() {
         </div>
 
         {/* Form */}
-        <div className="lg:col-span-2">
+        <div className="min-w-0 lg:col-span-2">
           {activeRegion && (
             <div className="mb-4 rounded-lg border-2 border-dashed border-border bg-secondary/50 p-4" data-testid="kecamatan-aggregate">
               <p className="mb-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">
                 Total Kecamatan {activeRegion.nama} (otomatis dari kelurahan)
               </p>
-              <div className="grid grid-cols-1 gap-x-4 gap-y-1 text-sm sm:grid-cols-3">
+              <div className="grid grid-cols-1 gap-x-6 gap-y-1.5 text-sm sm:grid-cols-2 2xl:grid-cols-3">
                 {FIELDS.slice(0, 5).map((fl) => (
-                  <div key={fl.key} className="flex items-center justify-between">
-                    <span className="text-muted-foreground">{fl.label.split(" (")[0]}</span>
-                    <span className="font-bold tabular-nums">{fmt(activeRegion[fl.key])}</span>
+                  <div key={fl.key} className="flex items-center justify-between gap-2">
+                    <span className="truncate text-muted-foreground">{fl.label.split(" (")[0]}</span>
+                    <span className="shrink-0 font-bold tabular-nums">{fmt(activeRegion[fl.key])}</span>
                   </div>
                 ))}
               </div>
@@ -179,8 +179,8 @@ export default function DataEntry() {
               </div>
 
               {!editable && (
-                <div className="mb-4 flex items-center gap-2 rounded-md border border-primary/40 bg-primary/5 p-3 text-sm text-primary">
-                  <Lock className="h-4 w-4" /> Anda tidak memiliki izin mengubah wilayah ini.
+                <div className="mb-4 flex items-center gap-2 rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive">
+                  <Lock className="h-4 w-4 shrink-0" /> Anda tidak memiliki izin mengubah wilayah ini.
                 </div>
               )}
 
@@ -205,7 +205,7 @@ export default function DataEntry() {
                 data-testid="save-btn"
                 onClick={save}
                 disabled={!editable || saving}
-                className="mt-6 inline-flex items-center gap-2 rounded-md bg-primary px-6 py-2.5 font-semibold text-primary-foreground transition-colors hover:bg-[hsl(0_72%_43%)] focus:outline-none disabled:opacity-60"
+                className="mt-6 inline-flex items-center gap-2 rounded-md bg-primary px-6 py-2.5 font-semibold text-primary-foreground transition-colors hover:bg-[#0E6456] focus:outline-none disabled:opacity-60"
               >
                 <Save className="h-5 w-5" /> {saving ? "Menyimpan…" : (isSuper ? "Simpan Perubahan" : "Kirim untuk Verifikasi")}
               </button>

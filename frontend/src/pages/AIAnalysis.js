@@ -148,7 +148,7 @@ export default function AIAnalysis() {
               data-testid="ai-analyze-btn"
               onClick={analyze}
               disabled={loading}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-primary px-6 py-2.5 font-semibold text-primary-foreground transition-colors hover:bg-[hsl(0_72%_43%)] focus:outline-none disabled:opacity-60"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-primary px-6 py-2.5 font-semibold text-primary-foreground transition-colors hover:bg-[#0E6456] focus:outline-none disabled:opacity-60"
             >
               {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Sparkles className="h-5 w-5" />}
               {loading ? "Menganalisa…" : "Analisa dengan AI"}
@@ -158,15 +158,15 @@ export default function AIAnalysis() {
       </div>
 
       {error && !loading && (
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border-2 border-primary bg-primary/5 p-5" data-testid="ai-error">
-          <div className="flex items-center gap-2 text-primary">
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border-2 border-destructive bg-destructive/5 p-5" data-testid="ai-error">
+          <div className="flex items-center gap-2 text-destructive">
             <AlertTriangle className="h-5 w-5" />
             <span className="font-semibold">{error}</span>
           </div>
           <button
             data-testid="ai-retry-btn"
             onClick={analyze}
-            className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-[hsl(0_72%_43%)] focus:outline-none"
+            className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-[#0E6456] focus:outline-none"
           >
             <RotateCw className="h-4 w-4" /> Coba Lagi
           </button>

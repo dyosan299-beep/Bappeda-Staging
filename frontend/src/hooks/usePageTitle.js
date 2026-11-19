@@ -8,7 +8,7 @@ const SUFFIX = "PETA INKLUSI Bappeda Kota Makassar";
  */
 export function usePageTitle(title) {
   useEffect(() => {
-    document.title = title ? `${title} — ${SUFFIX}` : SUFFIX;
+    document.title = title ? `${title} | ${SUFFIX}` : SUFFIX;
   }, [title]);
 }
 

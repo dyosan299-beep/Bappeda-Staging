@@ -440,40 +440,45 @@ export function ProgramGallery({ limit = 9, compact = false }: { limit?: number;
   }, [kat]);
   const items = (d?.items || []).slice(0, limit);
   return (
-    <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm" data-testid="program-gallery" aria-labelledby="judul-galeri">
+    <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6" data-testid="program-gallery" aria-labelledby="judul-galeri">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h2 id="judul-galeri" className="flex items-center gap-2 font-head text-sm font-extrabold uppercase tracking-wide text-[#232F3E]"><Award className="h-4 w-4 text-[#117A69]" /> Galeri Program Selesai</h2>
-          <p className="text-xs text-slate-600">Program intervensi NGO yang telah tuntas dilaksanakan. Nama NGO disamarkan untuk menjaga privasi.</p>
+          <h2 id="judul-galeri" className="flex items-center gap-2 font-head text-base font-extrabold text-[#232F3E]"><Award className="h-4 w-4 text-[#117A69]" aria-hidden="true" /> Galeri program selesai</h2>
+          <p className="mt-0.5 text-xs text-slate-600">Program intervensi NGO yang telah selesai dilaksanakan. Server menyamarkan nama NGO untuk menjaga privasi.</p>
         </div>
         {!compact && (
           <div className="flex flex-wrap gap-1.5" role="group" aria-label="Filter kategori program">
             {["", "Disabilitas", "Stunting", "ATS", "Kemiskinan", "Lintas kategori"].map((k) => (
               <button key={k || "semua"} type="button" onClick={() => setKat(k)} aria-pressed={kat === k} data-testid={`gallery-filter-${k || "semua"}`}
-                className={`inline-flex min-h-9 items-center rounded-full px-3 py-1.5 text-xs font-bold transition-colors ${kat === k ? "bg-[#232F3E] text-white" : "bg-slate-100 text-slate-700 hover:bg-slate-200"}`}>{k || "Semua"}</button>
+                className={`inline-flex min-h-9 items-center rounded-full px-3.5 py-1.5 text-xs font-bold transition-colors ${kat === k ? "bg-[#232F3E] text-white" : "bg-slate-100 text-slate-700 hover:bg-slate-200"}`}>{k || "Semua"}</button>
             ))}
           </div>
         )}
       </div>
-      <div className="mt-3 grid gap-3 sm:grid-cols-3">
+      <div className="mt-4 grid gap-3 sm:grid-cols-3">
         {[["Program selesai", d?.total, Award], ["Total penerima manfaat", d?.total_penerima, Users], ["Kecamatan terjangkau", d?.kecamatan_terjangkau, MapPin]].map(([l, v, I]: any) => (
-          <div key={l} className="flex items-center gap-3 rounded-lg bg-[#232F3E] p-3 text-white">
-            <I className="h-6 w-6 text-[#6FE3CF]" aria-hidden="true" />
-            <div><p className="text-[10px] uppercase tracking-wider text-[#6FE3CF]">{l}</p><p className="font-head text-xl font-extrabold" data-testid={`gallery-stat-${l.split(" ")[0].toLowerCase()}`}>{d ? fmt(v || 0) : "…"}</p></div>
+          <div key={l} className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
+            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[#E6FAF6] text-[#117A69]" aria-hidden="true">
+              <I className="h-5 w-5" />
+            </span>
+            <div>
+              <p className="text-xs font-semibold text-slate-600">{l}</p>
+              <p className="font-head text-xl font-extrabold text-[#232F3E] tabular-nums" data-testid={`gallery-stat-${l.split(" ")[0].toLowerCase()}`}>{d ? fmt(v || 0) : "…"}</p>
+            </div>
           </div>
         ))}
       </div>
-      {!d && <div className="mt-3 grid gap-3 sm:grid-cols-3">{[0, 1, 2].map((i) => <div key={i} className="h-36 animate-pulse rounded-xl bg-slate-100" />)}</div>}
+      {!d && <div className="mt-4 grid gap-3 sm:grid-cols-3">{[0, 1, 2].map((i) => <div key={i} className="h-36 animate-pulse rounded-xl bg-slate-100" />)}</div>}
       {d && items.length === 0 && (
-        <div className="mt-3 rounded-lg border border-dashed border-slate-300 p-6 text-center" data-testid="gallery-empty">
+        <div className="mt-4 rounded-xl border border-dashed border-slate-300 p-6 text-center" data-testid="gallery-empty">
           <p className="text-sm font-semibold text-slate-700">Belum ada program yang selesai{kat ? ` untuk kategori ${kat}` : ""}.</p>
-          <p className="mt-1 text-xs text-slate-500">NGO dapat mengajukan program intervensi berdasarkan wilayah prioritas di peta.</p>
+          <p className="mt-1 text-xs text-slate-500">NGO dapat mengajukan program intervensi berdasarkan wilayah prioritas pada peta.</p>
           <Link to="/login?mode=ngo" className="mt-3 inline-flex min-h-10 items-center justify-center rounded-md bg-[#117A69] px-4 py-2 text-xs font-bold text-white hover:bg-[#0E6456]">Daftar sebagai NGO</Link>
         </div>
       )}
-      <ul className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <ul className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {items.map((p: any) => (
-          <li key={p.id} className="flex flex-col overflow-hidden rounded-xl border border-slate-200 transition-shadow hover:shadow-md" style={{ borderTop: `4px solid ${KAT_WARNA[p.kategori] || "#232F3E"}` }} data-testid="gallery-card">
+          <li key={p.id} className="flex flex-col overflow-hidden rounded-xl border border-slate-200 transition-shadow hover:shadow-md" data-testid="gallery-card">
             {p.cerita?.foto?.length > 0 && (
               <button type="button" onClick={() => setBuka(p)} className="relative block" aria-label={`Lihat cerita ${p.program}`} data-testid="gallery-cover">
                 <img src={fotoSrc(p.cerita.foto[0].url)} alt={p.cerita.foto[0].keterangan || `Foto kegiatan ${p.program}`} className="aspect-[16/9] w-full object-cover" loading="lazy" />
@@ -482,19 +487,19 @@ export function ProgramGallery({ limit = 9, compact = false }: { limit?: number;
             )}
             <div className="flex flex-1 flex-col p-4">
             <div className="flex items-center justify-between gap-2">
-              <span className="rounded-full px-2 py-0.5 text-[10px] font-extrabold uppercase text-white" style={{ backgroundColor: KAT_WARNA[p.kategori] || "#232F3E" }}>{p.kategori}</span>
+              <span className="rounded-full bg-[#232F3E] px-2.5 py-0.5 text-[10px] font-bold uppercase text-white">{p.kategori}</span>
               <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-800"><CheckCircle2 className="h-3 w-3" /> Selesai</span>
             </div>
             <h3 className="mt-2 font-head text-base font-extrabold leading-snug text-slate-900" data-testid="gallery-program-name">{p.program}</h3>
             <p className="mt-1 flex items-center gap-1 text-xs text-slate-600"><MapPin className="h-3.5 w-3.5" /> {p.kelurahan ? `Kel. ${p.kelurahan}, ` : ""}Kec. {p.kecamatan}</p>
             <dl className="mt-3 grid grid-cols-2 gap-2 text-xs">
-              <div><dt className="text-slate-500">Penerima manfaat</dt><dd className="font-head text-lg font-extrabold text-[#117A69]" data-testid="gallery-penerima">{fmt(p.cerita?.realisasi_penerima ?? p.jumlah_penerima)}</dd></div>
+              <div><dt className="text-slate-500">Penerima manfaat</dt><dd className="font-head text-lg font-extrabold text-[#117A69] tabular-nums" data-testid="gallery-penerima">{fmt(p.cerita?.realisasi_penerima ?? p.jumlah_penerima)}</dd></div>
               <div><dt className="text-slate-500">Durasi</dt><dd className="font-semibold text-slate-800">{p.durasi_bulan} bulan</dd></div>
             </dl>
             <p className="mt-2 text-xs text-slate-600">{p.target_penerima}</p>
             {p.cerita?.testimoni?.[0] && (
               <blockquote className="mt-2 line-clamp-3 border-l-4 border-[#6FE3CF] pl-2 text-xs italic text-slate-700" data-testid="gallery-quote">
-                "{p.cerita.testimoni[0].kutipan}" <span className="not-italic text-slate-500">— {p.cerita.testimoni[0].sumber}</span></blockquote>
+                "{p.cerita.testimoni[0].kutipan}" <span className="not-italic text-slate-500">, {p.cerita.testimoni[0].sumber}</span></blockquote>
             )}
             {p.cerita && (
               <button type="button" onClick={() => setBuka(p)} data-testid="gallery-baca-cerita"
