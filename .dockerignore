@@ -1,0 +1,89 @@
+# =============================================================================
+#  .dockerignore - memperkecil build context & mencegah kredensial masuk image
+# =============================================================================
+
+# --- Version control & tooling ---
+.git
+.git/**
+.gitignore
+.gitattributes
+.gitconfig
+.github
+.vscode
+.idea
+*.swp
+*.swo
+
+# --- Rahasia / environment (WAJIB dikecualikan) ---
+.env
+.env.*
+**/.env
+**/.env.*
+*.pem
+*.key
+*.p12
+bappedaproduction.txt
+
+# --- Node / frontend ---
+**/node_modules
+**/node_modules/**
+frontend/build
+frontend/dist
+frontend/.cache
+**/.yarn-cache
+**/npm-debug.log*
+**/yarn-error.log*
+**/.pnp
+**/.pnp.js
+
+# --- Python / backend ---
+**/__pycache__
+**/__pycache__/**
+**/*.py[cod]
+**/*.egg-info
+**/.venv
+**/venv
+**/.mypy_cache
+**/.ruff_cache
+**/.pytest_cache
+**/htmlcov
+**/.coverage
+**/coverage
+
+# --- Build / dist artefak ---
+dist
+build
+*.log
+
+# --- Platform Emergent & artefak pengembangan (tidak diperlukan produksi) ---
+.emergent
+memory
+tests
+test_reports
+backend/tests
+test_result.md
+auth_testing.md
+backend_test.py
+test_roles_verification.py
+test_core_mariadb.py
+test_mariadb_flows.py
+plan.md
+design_guidelines.json
+docker-compose.yml
+Dockerfile
+.dockerignore
+
+# --- Dokumentasi (tidak dibutuhkan saat runtime) ---
+README.md
+frontend/README.md
+DEPLOY_COOLIFY.md
+
+# --- Data runtime lokal (datadir MariaDB dev & unggahan) ---
+.data
+.data/**
+data_upload
+data_upload/**
+
+# --- Berkas OS ---
+.DS_Store
+Thumbs.db

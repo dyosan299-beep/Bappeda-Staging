@@ -1,0 +1,89 @@
+{
+  "project_name": "Sistem Intelijen Data Bappeda Kota Makassar",
+  "theme": "Light mode default (high-contrast for accessibility), with explicit Dark mode toggle support",
+  "archetype": "ARCHETYPE 4: SWISS & HIGH-CONTRAST (Authority, Clarity, Truth)",
+  "typography": {
+    "headings": {
+      "font": "Manrope",
+      "style": "tracking-tight, high-contrast, authoritative, large scales for dashboards"
+    },
+    "body": {
+      "font": "IBM Plex Sans",
+      "style": "clear, data-friendly, leading-relaxed"
+    },
+    "rules": "DO NOT use Inter or standard fonts for headings. The hierarchy gap rule applies: jumping between heading and subheading must not exceed 2 Tailwind steps."
+  },
+  "colors": {
+    "primary": "#DC2626",
+    "primary_hover": "#B91C1C",
+    "accent": "#0F172A",
+    "background_light": "#FFFFFF",
+    "surface_light": "#F1F5F9",
+    "background_dark": "#0A0A0A",
+    "surface_dark": "#171717",
+    "chart_palettes": [
+      "#DC2626",
+      "#D97706",
+      "#4338CA",
+      "#C026D3",
+      "#047857"
+    ],
+    "rules": "Avoid pure black (#000000). Always explicitly set text color on hover. Ensure all interactive elements have focus states with higher contrast."
+  },
+  "visual_enhancers": {
+    "surfaces": "Use 'GRID BORDERS' or flat solid backgrounds with sharp 1px borders to separate regions, avoiding murky shadows.",
+    "textures": "Include subtle noise or minimal patterns to break flat spaces in login/hero sections."
+  },
+  "components": {
+    "general": "Shadcn/UI heavily customized for government aesthetic.",
+    "forms": "Use Shadcn Form, Input, Select components. High contrast borders required.",
+    "charts": "Recharts (Shadcn chart component). Must include data tables for accessibility.",
+    "map": "Leaflet with OpenStreetMap tiles. High contrast markers for kecamatan.",
+    "icons": "lucide-react"
+  },
+  "layouts": {
+    "dashboard_grid": "High Density Grid: grid-cols-1 md:grid-cols-3 lg:grid-cols-4. Tight gap-4 or gap-6. Every pixel utilized.",
+    "header": "Solid background with hard bottom border. Sticky top.",
+    "spacing": "Generous Spacing Philosophy: use p-6 or p-8 inside cards to avoid text collision."
+  },
+  "motion": {
+    "rules": "Minimalist animations. Use micro-interactions for feedback. Entrance animations should stagger. Must respect prefers-reduced-motion."
+  },
+  "accessibility": {
+    "disabilitas_buta": "Implement a global Text-to-Speech button (mocked via SpeechSynthesis or API). High contrast UI. Keyboard navigable. Screen reader tags (aria-labels, aria-live).",
+    "disabilitas_tuli": "Ensure all audio/video (if any) has captions. Primarily text and visual-based data representation.",
+    "focus": "Clear focus rings: focus:ring-4 focus:ring-red-600 focus:outline-none.",
+    "testing": "All interactive elements MUST have data-testid attributes."
+  },
+  "media": {
+    "images": "Use solid colors or patterns primarily. For login/hero, use professional government aesthetic images."
+  },
+  "image_urls": {
+    "login_hero": {
+      "url": "https://images.unsplash.com/photo-1542801285-eabba3ba6ce2?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NTYxODd8MHwxfHNlYXJjaHwyfHxnb3Zlcm5tZW50JTIwYnVpbGRpbmclMjBtb2Rlcm4lMjBzdW5zZXR8ZW58MHx8fHwxNzg3OTg4MTk3fDA&ixlib=rb-4.1.0&q=85",
+      "description": "Silhouette of concrete buildings at sunset, giving a governmental or official skyline feel.",
+      "category": "login background or hero section"
+    },
+    "map_placeholder": {
+      "url": "https://images.unsplash.com/photo-1633098096956-afdc8bcc8552?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2NzR8MHwxfHNlYXJjaHwxfHxhYnN0cmFjdCUyMGRhdGElMjBtYXB8ZW58MHx8fHwxNzg3OTg4MjIwfDA&ixlib=rb-4.1.0&q=85",
+      "description": "Abstract map showing global data points.",
+      "category": "AI analysis background or map placeholder"
+    }
+  },
+  "instructions_to_main_agent": [
+    "Create a robust Dashboard Layout with Sidebar and Header (JWT mocked auth state).",
+    "Develop real-time statistics widgets for poverty, stunting, disability, ATS, and PMKS.",
+    "Integrate interactive region mapping of Makassar (mocked data per 15 kecamatan).",
+    "Implement an AI Analysis feature (mocked Claude Sonnet 4.6) for program recommendations.",
+    "Build a robust Accessibility Panel (toggle for high contrast, large text, and Text-to-Speech readouts).",
+    "Include Data Entry forms for kecamatan officers to update statistics.",
+    "Ensure UI is strictly in Bahasa Indonesia."
+  ],
+  "UNIVERSAL_GUIDELINES_FOR_MAIN_AGENT": [
+    "DO NOT use Inter or generic sans for headings.",
+    "Avoid generic centered layouts, simplistic gradients, and uniform styling.",
+    "Never apply transition: all globally. Add transitions for specific properties.",
+    "Do not center-align the app container (.App { text-align: center; } is banned).",
+    "All interactive elements MUST include a data-testid attribute in kebab-case."
+  ]
+}

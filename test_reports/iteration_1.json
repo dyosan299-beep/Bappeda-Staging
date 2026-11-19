@@ -1,0 +1,47 @@
+{
+  "summary": "Full backend + frontend E2E testing of SIDATA Bappeda Makassar. Backend: 28 pytest cases (26 passed, 2 failed) covering stats/overview, regions CRUD, trends, pmks/disability/ats/categories, JWT cookie auth (admin+petugas), protected PUT /api/regions, AI analyze (Claude Sonnet 4.6) and OpenAI TTS. Frontend: Landing, Dashboard (6 KPI + 16 chart surfaces + PMKS table), Peta (Leaflet, 15 markers, category switch, region detail, ranking), Analisa AI (per-kecamatan works, markdown render + Bacakan TTS), Aksesibilitas (Tunanetra/Tunarungu cards, TTS 200 OK, toggles), Login/Logout, protected /input-data redirect, admin data edit + save with success toast + persistence verified. 1 CRITICAL blocker: city-wide AI analysis always fails with 502 at the public ingress (60s gateway limit).",
+  "backend_issues": {
+    "critical": [
+      {"endpoint": "POST /api/ai/analyze", "issue": "City-wide analysis (no wilayah) takes ~60s+ in the backend (verified 60.1s / 8352 chars on localhost:8001 returning 200), but the public ingress cuts off at 60s and returns HTTP 502 Bad Gateway. Reproduced for ALL 5 kategori (kemiskinan, stunting, anak_jalanan, ats, disabilitas) via public URL -> 502 at exactly 60.2s. Per-kecamatan requests (e.g. wilayah=Tallo) complete in time and return 200. Fix by shortening the prompt/output (e.g. max_tokens cap, more concise required structure) or switching to an async job + polling / streaming response so the whole AI feature is usable city-wide.", "priority": "CRITICAL"},
+      {"endpoint": "GET /api/regions/{region_id}", "issue": "Non-hex/invalid id (e.g. 'not-an-objectid') raises bson.errors.InvalidId -> HTTP 500 Internal Server Error. Should be 400/404. Same unguarded ObjectId() conversion exists in PUT /api/regions/{region_id}.", "priority": "HIGH"}
+    ],
+    "minor": [
+      {"endpoint": "PUT /api/regions/{region_id}", "issue": "Authorization gap: role 'petugas' with wilayah='Tallo' successfully updated Kecamatan Mariso (HTTP 200, updated_by='Petugas Kecamatan Tallo'). Any authenticated petugas can edit any kecamatan; endpoint only checks authentication, not wilayah/role scope."},
+      {"endpoint": "POST /api/auth/register", "issue": "Endpoint is public and accepts role='admin' in the payload, allowing anyone to self-register as admin. Should restrict role assignment to admins."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "AIAnalysis", "issue": "When city-wide analysis fails (502 after 60s) the only feedback is a short-lived toast 'Gagal membuat analisa'; no persistent inline error/retry state and no progress indication for the very long wait. Users see an empty page.", "selector": "[data-testid=\"ai-analyze-btn\"]", "priority": "HIGH"},
+      {"component": "Landing feature cards", "issue": "The 4 'Fitur Utama' cards have no data-testid attributes (only landing-enter-btn / landing-login-btn exist).", "selector": "n/a", "priority": "LOW"}
+    ],
+    "integration_issues": [
+      {"flow": "Analisa AI (Seluruh Kota Makassar)", "issue": "POST /api/ai/analyze returns 502 via public URL; [data-testid=\"ai-result\"] never renders. Only per-kecamatan analysis works.", "affected_selectors": ["[data-testid=\"ai-analyze-btn\"]", "[data-testid=\"ai-result\"]"]}
+    ],
+    "design_issues": [
+      {"screen": "Console", "issues": ["React warning on /analisa-ai: '<span> cannot be a child of <option> ... hydration error' (appears to come from the dev instrumentation wrapper around <option> elements). Non-blocking, selects work."]}
+    ]
+  },
+  "test_report_links": ["/app/backend/tests/backend_test.py", "/app/test_reports/pytest/pytest_results.xml"],
+  "action_items": [
+    "CRITICAL: Make city-wide POST /api/ai/analyze return under the 60s ingress limit (cap max_tokens / shorten prompt output) or convert to async job + polling; currently the flagship AI feature is unusable for 'Seluruh Kota Makassar' in all 5 categories.",
+    "Guard ObjectId parsing in GET/PUT /api/regions/{id} -> return 400/404 instead of 500.",
+    "Enforce wilayah/role scoping on PUT /api/regions/{id} (petugas should only edit own kecamatan) and lock down role escalation in POST /api/auth/register.",
+    "Add persistent inline error + retry state (and elapsed-time hint) on the Analisa AI page instead of toast-only error."
+  ],
+  "critical_code_review_comments": [
+    "server.py: ObjectId(region_id) is called without validation in get_region and update_region -> unhandled bson InvalidId => 500.",
+    "server.py: update_region only depends on current_user, no role/wilayah authorization check.",
+    "server.py: /auth/register is unauthenticated yet honours inp.role == 'admin' (privilege escalation).",
+    "server.py: uses deprecated @app.on_event('startup'/'shutdown'); prefer lifespan handlers.",
+    "server.py: TTS audio blobs cached in MongoDB documents - fine for short text but risks 16MB doc limit on long inputs; text is capped at 4000 chars so acceptable."
+  ],
+  "updated_files": ["/app/backend/tests/backend_test.py"],
+  "success_rate": {"backend": "93% (26/28)", "frontend": "92% (all flows pass except city-wide AI analysis)"},
+  "seed_data_creation": "None created. Existing seeded data used; region values temporarily modified in tests (Mariso stunting_anak, Tallo/Mariso anak_jalanan) and restored to original values (verified via GET /api/regions).",
+  "should_call_test_agent_after_fix": true,
+  "should_main_agent_self_test": false,
+  "test_credentials": "admin@bappeda.makassarkota.go.id / <TEST_ADMIN_PASSWORD> (admin), petugas.tallo@makassarkota.go.id / <TEST_PETUGAS_PASSWORD> (petugas) - both verified working",
+  "context_for_next_testing_agent": "Run: cd /app/backend && python -m pytest tests/backend_test.py -v. Public URL https://backend-recovery-16.preview.emergentagent.com. Frontend testids confirmed: landing-enter-btn, landing-login-btn, nav-input, login-email/password/submit, logout-btn, map-page, map-category-selector, map-cat-<field> (e.g. map-cat-stunting_anak NOT map-cat-stunting), leaflet-map (markers are SVG path.leaflet-interactive, not marker-icons), region-detail, map-ranking, ai-kategori, ai-wilayah (labels are 'Kecamatan <Nama>'), ai-analyze-btn, ai-result, field-<key>, save-btn, a11y-text-size, a11y-contrast-toggle, a11y-motion-toggle. 401s on /api/auth/me in console are expected for public visitors. After the AI timeout fix, re-verify TestAI::test_analyze_stunting (city-wide) via the PUBLIC URL, not localhost.",
+  "rca_of_the_issue": "AI 502: Claude Sonnet 4.6 generation for the full 15-kecamatan prompt with a 4-section markdown structure takes ~60s; the Kubernetes/Cloudflare ingress terminates the request at 60s with a 502 HTML page while the backend eventually completes successfully (confirmed by direct localhost:8001 call returning 200 in 60.1s). Region 500: bson.ObjectId(region_id) raises InvalidId for malformed ids and is not caught, so FastAPI returns 500."
+}

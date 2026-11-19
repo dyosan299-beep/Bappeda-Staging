@@ -1,0 +1,39 @@
+{
+  "summary": "Completed frontend testing for Input Data button positioning and functionality across Disabilitas, Data Stunting, and Data ATS pages. All buttons now use the same PageHeader component with consistent positioning and styling. Dialog-based import panels work correctly with proper open/close behavior. Role-based visibility is correct. Real stunting data (450 balita) is present and functional.",
+  "backend_issues": {
+    "critical_bugs": [],
+    "flaky_endpoints": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "passed_tests": [
+    "Button positioning: All 3 pages (Disabilitas, Data Stunting, Data ATS) have Input Data buttons at SAME position (x=1581, y=132, w=139, h=36) with identical styling",
+    "Data Stunting dropdown: Opens with 'Import PDF Stunting' and 'Riwayat Impor' menu items",
+    "Data Stunting dialog: Opens correctly (dialog-impor-stunting) with stunting-file-input, stunting-preview-btn, stunting-riwayat elements",
+    "Data Stunting dialog close: Works via X button, Esc key, and backdrop click",
+    "Data Stunting Riwayat menu: Opens same dialog and shows riwayat section",
+    "Data Stunting old panel removed: stunting-import-toggle button no longer exists",
+    "Data Stunting data: 450 balita present (real PDF data from 'DATA STUNTING KEC MAKASSAR DAN TALLO.pdf')",
+    "Data Stunting search/filter/pagination: All working correctly",
+    "Data ATS dropdown: Opens with 'Import Excel / CSV' and 'Download Template Excel' menu items",
+    "Data ATS dialog: Opens correctly (dialog-impor-ats) with ats-file-input, ats-preview-btn, ats-template-btn elements",
+    "Data ATS placeholder: References 'Input Data' button correctly",
+    "Data ATS dialog close: Works via X button",
+    "Role-based visibility (petugas.tallo): NO btn-input-stunting (correct), YES btn-input-ats (correct), names masked",
+    "Role-based visibility (superadmin): All buttons visible",
+    "Disabilitas regression: All 4 menu items present (Input Manual, Import Excel, Import CSV, Download Template)",
+    "Disabilitas Input Manual: Opens dynamic form dialog"
+  ],
+  "test_report_links": [],
+  "success_percentage": {
+    "frontend": "100%",
+    "backend": "N/A (frontend-only testing)"
+  },
+  "action_item_for_main_agent": "",
+  "updated_files": [],
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_test_itself": false
+}

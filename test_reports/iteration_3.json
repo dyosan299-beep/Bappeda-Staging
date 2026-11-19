@@ -1,0 +1,58 @@
+{
+  "summary": "Full retest of the new SIDATA Bappeda features (Data Kelurahan, Kelola Petugas, register->pending approval flow, PDF with emblem) plus regression. Backend: added /app/backend/tests/test_kelurahan_admin.py (27 tests) and updated the stale TestRegister case in backend_test.py. Results: 26/27 new tests pass (1 fail = no brute-force lockout, required by the auth playbook; 1 skip = mongosh check, verified manually instead). Legacy suite: 30/36 pass - all 6 failures are AI streaming failing because EMERGENT_LLM_KEY budget is exhausted. Frontend: verified register toggle -> pending message, pending login blocked, admin-only nav-users + /kelola-petugas guard (petugas redirected to /dashboard), approve/deactivate/activate/delete + add-petugas flows, kelurahan-based Input Data with live kecamatan-aggregate recompute, petugas wilayah lock (fields + save disabled with 'Anda tidak memiliki izin' notice), map kelurahan-breakdown (sums match kecamatan totals), dashboard KPIs/charts, dashboard PDF download (1.08MB, 1 embedded image = emblem), accessibility toggles and TTS (audio/mpeg 62KB for fresh text). Only real blocker found: AI analysis is broken due to LLM key budget.",
+  "backend_issues": {
+    "critical": [
+      {"endpoint": "POST /api/ai/analyze (SSE)", "issue": "Always returns SSE {\"error\": \"litellm.RateLimitError ... Budget has been exceeded! Current cost: 1.009416, Max budget: 1.0\"} - EMERGENT_LLM_KEY credit exhausted, so the whole 'Analisa AI' feature (and the AI PDF content it feeds) is unusable end to end. Not a code bug; needs key/credit top-up or a user-supplied Anthropic key. UI degrades gracefully ('Gagal membuat analisa' + Coba Lagi).", "priority": "CRITICAL"}
+    ],
+    "minor": [
+      {"endpoint": "POST /api/auth/login", "issue": "No brute-force lockout: 6 consecutive wrong-password attempts on the admin account all return 401 (playbook expects 429/423 after 5 fails). No attempt counter/lockout in server.py or auth.py."},
+      {"endpoint": "POST /api/admin/users", "issue": "No password strength/length validation (AdminCreateUser.password is a plain str); a 1-char password is accepted server-side even though the UI enforces minLength=6."},
+      {"endpoint": "PUT /api/kelurahan/{id}", "issue": "Category values accept any int with no non-negative bound; a negative value would silently corrupt the recomputed kecamatan aggregate."},
+      {"endpoint": "GET /api/report/dashboard", "issue": "assets/emblem.jpeg is 865KB and embedded uncompressed, making every dashboard PDF ~1.09MB. Downscale/recompress the emblem to keep report downloads light."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "AIAnalysis wilayah select", "issue": "React hydration warning in console: '<span> cannot be a child of <option>' for the dynamically rendered <option> list (data-testid=ai-wilayah). Cosmetic but pollutes console and can break option text in strict mode.", "selector": "[data-testid=\"ai-wilayah\"] option", "priority": "LOW"},
+      {"component": "Login hero panel", "issue": "The left-side hero background image intermittently fails to render (panel stays flat dark) on ~2 of 4 loads; no dedicated placeholder/fallback.", "selector": "login page left panel", "priority": "LOW"}
+    ],
+    "integration_issues": [
+      {"flow": "Analisa AI (streaming)", "issue": "Generation always ends in the error state because the backend LLM key budget is exceeded; no result can be produced or exported to AI PDF.", "affected_selectors": ["[data-testid=\"ai-page\"]", "button:has-text(\"Analisa dengan AI\")"]}
+    ],
+    "design_issues": [
+      {"screen": "Kelola Petugas table", "issues": ["Email column uses a very light muted gray on white (low contrast, below WCAG AA for body text)"]},
+      {"screen": "Peta Wilayah ranking panel", "issues": ["'Peringkat' list items look like list rows but are not clickable; region detail + kelurahan-breakdown only opens from map markers. Making ranking rows clickable would match user expectation (test initially failed clicking them)."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_kelurahan_admin.py",
+    "/app/backend/tests/backend_test.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [
+    "AI: EMERGENT_LLM_KEY budget exhausted (cost 1.009 / max 1.0) - top up credits or let the user supply their own Anthropic key; AI analysis + AI PDF content are blocked until then.",
+    "Add login brute-force lockout (429/423 after 5 failed attempts per email/IP) as required by the auth playbook.",
+    "Validate inputs: non-negative bounds on kelurahan/region numeric fields; minimum password length on POST /api/admin/users.",
+    "Recompress assets/emblem.jpeg (865KB) so dashboard PDFs are not ~1.1MB.",
+    "Fix the <span> inside <option> hydration warning in AIAnalysis.js wilayah select.",
+    "Optional UX: make Peta 'Peringkat' rows clickable to open region detail; raise contrast of the email column in Kelola Petugas."
+  ],
+  "critical_code_review_comments": [
+    "server.py _recompute_region averages kemiskinan_persen across kelurahan (unweighted). If kelurahan populations differ this misstates the kecamatan poverty rate - consider a population-weighted average or storing it only at kecamatan level.",
+    "PUT /api/regions/{id} still lets an authorised user overwrite kecamatan aggregates directly, which will be silently discarded on the next kelurahan edit (recompute overwrites it). Either remove/deprecate the endpoint or document it as derived-only.",
+    "POST /api/admin/users allows role='admin', so any admin can mint further admins with no audit trail; consider logging admin actions (create/status/delete) with the acting admin id.",
+    "No unique index / validation on kelurahan (nama, kecamatan); a duplicate seed run would double the aggregates. Startup seeding is only guarded by count_documents({}) == 0.",
+    "auth.py hard-codes fallback admin email/password defaults via os.environ.get(...) - defaults should be omitted so missing config fails fast (per env-var policy)."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_kelurahan_admin.py",
+    "/app/backend/tests/backend_test.py"
+  ],
+  "success_rate": {"backend": "94% (56/60 excluding AI-key failures; 6 AI tests fail only due to exhausted LLM budget)", "frontend": "95% (all new-feature flows pass; only AI analysis flow fails, caused by backend LLM key)"},
+  "seed_data_creation": "Created and deleted throwaway accounts (test_ui_*, test_add_*, test_ui2_*, test_petugas_*, test_flow_*, test_adm_*, test_del_*) via /api/auth/register and /api/admin/users; all removed via DELETE /api/admin/users (verified only the 2 seeded accounts remain). Kelurahan values edited during tests were restored to their original values.",
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_self_test": true,
+  "test_credentials": "admin@bappeda.makassarkota.go.id / <TEST_ADMIN_PASSWORD> (admin), petugas.tallo@makassarkota.go.id / <TEST_PETUGAS_PASSWORD> (petugas, wilayah Tallo) - both valid, status active, bcrypt hashes confirmed $2b$12$",
+  "context_for_next_testing_agent": "All new features verified working: 153 kelurahan seeded, per-kecamatan counts match region.kelurahan and category sums equal kecamatan aggregates for all 15 kecamatan; PUT /api/kelurahan enforces 401/403/404/400 correctly and recomputes the parent region; admin/users CRUD + status transitions and self-modification guards (400) all correct; register->pending->403->approve->200 e2e works both via API and UI. Frontend testids are accurate EXCEPT map category buttons which are map-cat-<field_key> (e.g. map-cat-stunting_anak, not map-cat-stunting), and register-wilayah on Login.js is a free-text input (not a select). When testing Kelola Petugas, wait for [data-testid=user-row-<email>] rather than users-table, since the table shell renders before the fetch resolves. Only outstanding blocker is the exhausted EMERGENT_LLM_KEY budget affecting /api/ai/analyze.",
+  "rca_of_the_issue": "AI failure RCA: backend log shows litellm.RateLimitError 'Budget has been exceeded! Key=da8o2ptqiigs73e770lg Current cost: 1.009416, Max budget: 1.0' raised from emergentintegrations chat.stream_message; reproduce with `curl -N -X POST $URL/api/ai/analyze -d '{\"kategori\":\"stunting\"}'`. Application code, prompt and SSE plumbing are correct (error is surfaced as an SSE error event and the UI shows a retry state); mitigation is credit top-up / user-provided key. OpenAI TTS on the same key still returns audio (62KB for fresh text), so only the Anthropic completion path is blocked. Brute-force RCA: /api/auth/login has no failed-attempt tracking, so repeated wrong passwords return 401 indefinitely."
+}

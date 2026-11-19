@@ -1,0 +1,287 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+    --font-head: "Manrope", ui-sans-serif, system-ui, sans-serif;
+    --font-body: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+}
+
+body {
+    margin: 0;
+    font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4, h5, .font-head {
+    font-family: var(--font-head);
+    letter-spacing: -0.02em;
+}
+
+@layer base {
+    :root {
+        --background: 0 0% 100%;
+        --foreground: 222 47% 11%;
+        --card: 0 0% 100%;
+        --card-foreground: 222 47% 11%;
+        --popover: 0 0% 100%;
+        --popover-foreground: 222 47% 11%;
+        --primary: 0 72% 51%;
+        --primary-foreground: 0 0% 100%;
+        --secondary: 210 40% 96%;
+        --secondary-foreground: 222 47% 11%;
+        --muted: 210 40% 96%;
+        --muted-foreground: 215 16% 40%;
+        --accent: 222 47% 11%;
+        --accent-foreground: 0 0% 100%;
+        --destructive: 0 72% 51%;
+        --destructive-foreground: 0 0% 100%;
+        --border: 214 20% 84%;
+        --input: 214 20% 55%;
+        --ring: 0 72% 51%;
+        --chart-1: 0 72% 51%;
+        --chart-2: 32 90% 44%;
+        --chart-3: 243 55% 50%;
+        --chart-4: 292 84% 50%;
+        --chart-5: 160 84% 27%;
+        --radius: 0.5rem;
+    }
+    .dark {
+        --background: 0 0% 4%;
+        --foreground: 210 40% 98%;
+        --card: 0 0% 9%;
+        --card-foreground: 210 40% 98%;
+        --popover: 0 0% 9%;
+        --popover-foreground: 210 40% 98%;
+        --primary: 0 72% 55%;
+        --primary-foreground: 0 0% 100%;
+        --secondary: 0 0% 15%;
+        --secondary-foreground: 210 40% 98%;
+        --muted: 0 0% 15%;
+        --muted-foreground: 215 16% 65%;
+        --accent: 210 40% 98%;
+        --accent-foreground: 0 0% 9%;
+        --destructive: 0 72% 55%;
+        --destructive-foreground: 0 0% 100%;
+        --border: 0 0% 20%;
+        --input: 0 0% 45%;
+        --ring: 0 72% 55%;
+        --chart-1: 0 72% 55%;
+        --chart-2: 32 90% 55%;
+        --chart-3: 243 65% 65%;
+        --chart-4: 292 74% 62%;
+        --chart-5: 160 64% 45%;
+    }
+}
+
+@layer base {
+    * {
+        @apply border-border;
+    }
+    body {
+        @apply bg-background text-foreground;
+    }
+}
+
+/* ---------- Accessibility helpers ---------- */
+/* Large text mode (disabilitas buta / low vision) */
+html.a11y-large {
+    font-size: 20px;
+}
+html.a11y-xlarge {
+    font-size: 24px;
+}
+
+/* High contrast mode */
+html.a11y-contrast {
+    --background: 0 0% 100%;
+    --foreground: 0 0% 0%;
+    --muted-foreground: 0 0% 15%;
+    --border: 0 0% 0%;
+    --input: 0 0% 0%;
+    --primary: 0 100% 40%;
+    --ring: 0 100% 40%;
+}
+html.a11y-contrast .dark,
+html.a11y-contrast.dark {
+    --background: 0 0% 0%;
+    --foreground: 0 0% 100%;
+    --border: 0 0% 100%;
+}
+html.a11y-contrast * {
+    border-color: currentColor;
+}
+
+/* Hormati preferensi kontras sistem (Windows High Contrast / macOS Increase contrast). */
+@media (prefers-contrast: more) {
+    :root {
+        --foreground: 0 0% 0%;
+        --muted-foreground: 0 0% 12%;
+        --border: 214 20% 40%;
+        --input: 214 20% 40%;
+    }
+}
+
+/* Fokus keyboard.
+   #B47600 = amber merek (#F4B63A) yang hanya digelapkan; hue tetap (~40°).
+   Kontras 3.8:1 di atas putih dan 3.4:1 di atas header gelap (#232F3E),
+   sehingga indikator tetap terlihat di kedua latar (WCAG 2.4.7, 1.4.11, 2.4.11).
+   Sebelumnya #F4B63A hanya 1.8:1 di atas putih. */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[tabindex]:focus-visible,
+:focus-visible {
+    /* !important disengaja: banyak komponen memakai utilitas `focus:outline-none`
+       (spesifisitas kelas) yang tanpa ini mematikan indikator fokus.
+       Saat komponen dibersihkan di Fase 3, deklarasi ini bisa dilepas. */
+    outline: 3px solid #B47600 !important;
+    outline-offset: 2px !important;
+    border-radius: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+html.a11y-reduce-motion * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+}
+
+::selection {
+    background: hsl(var(--primary));
+    color: #fff;
+}
+
+/* ==========================================================================
+   RESPONSIVE FOUNDATION (mobile-first)
+   Breakpoint mengikuti Tailwind: sm 640 · md 768 · lg 1024 · xl 1280 · 2xl 1536
+   (+ min-[1920px] untuk monitor besar). Jangan menambah media query duplikat.
+   ========================================================================== */
+@layer base {
+    :root {
+        /* design tokens tata letak */
+        --page-gutter: clamp(0.75rem, 0.5rem + 1.2vw, 1.5rem);
+        --touch-target: 44px;
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+    html {
+        -webkit-text-size-adjust: 100%;
+        text-size-adjust: 100%;
+        /* Elemen yang menerima fokus tidak tertutup header sticky (h-14) maupun
+           widget aksesibilitas yang mengambang di kanan bawah (WCAG 2.4.11). */
+        scroll-padding-top: 4.5rem;
+        scroll-padding-bottom: 6rem;
+    }
+    body { min-height: 100dvh; overflow-wrap: break-word; }
+    /* Anak grid default min-width:auto -> tabel/peta/teks panjang menembus
+       kolom & viewport. min-width:0 membuat kolom grid boleh menyusut;
+       utilitas min-w-* tetap menang karena berada di layer utilities. */
+    .grid > * { min-width: 0; }
+    /* Kontrol form tidak boleh lebih lebar dari kontainernya */
+    input, select, textarea { max-width: 100%; }
+    /* Border kontrol form wajib >=3:1 terhadap latar (WCAG 1.4.11).
+       Token --input 55% = 3.6:1 di atas putih. Dibatasi :not(:focus) supaya
+       warna border saat fokus (hijau merek) tidak ikut tertimpa. */
+    input:not(:focus):not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+    select:not(:focus),
+    textarea:not(:focus) {
+        border-color: hsl(var(--input)) !important;
+    }
+    /* iOS: cegah auto-zoom saat fokus input pada layar sentuh kecil */
+    @media (max-width: 639px) and (pointer: coarse) {
+        input:not([type="checkbox"]):not([type="radio"]):not([type="range"]), select, textarea { font-size: max(16px, 1em); }
+    }
+}
+
+/* Leaflet sizing */
+.leaflet-container {
+    font-family: var(--font-body);
+    max-width: 100%;
+}
+/* Popup peta tidak boleh keluar viewport di layar kecil */
+.leaflet-popup-content-wrapper { max-width: calc(100vw - 48px); }
+.leaflet-popup-content { max-width: calc(100vw - 80px); overflow-wrap: anywhere; }
+/* Target sentuh kontrol peta lebih besar pada perangkat sentuh */
+@media (pointer: coarse) {
+    .leaflet-touch .leaflet-bar a { width: 40px; height: 40px; line-height: 40px; font-size: 20px; }
+    .leaflet-touch .leaflet-control-layers-toggle { width: 44px; height: 44px; }
+}
+/* Kontainer tabel yang dapat digulir horizontal dengan indikator halus */
+.table-scroll { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain; }
+.scrollbar-thin { scrollbar-width: thin; }
+
+/* Tabel adaptif: di <=768px menjadi kartu bertumpuk dengan label per sel.
+   Semantik tabel dipertahankan lewat role eksplisit di markup, karena
+   `display:block` menghapus semantik tabel bawaan. Desktop tidak berubah. */
+.table-cards { width: 100%; }
+@media (max-width: 767px) {
+    .table-cards,
+    .table-cards tbody,
+    .table-cards tr,
+    .table-cards td { display: block; width: 100%; }
+    .table-cards thead {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+    }
+    .table-cards tbody tr {
+        border: 1px solid hsl(var(--border));
+        border-radius: var(--radius);
+        margin-bottom: 0.75rem;
+        padding: 0.25rem 0;
+        background: hsl(var(--card));
+    }
+    .table-cards tbody tr:last-child { margin-bottom: 0; }
+    .table-cards tbody td {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.25rem 0.75rem;
+        justify-content: space-between;
+        border: 0;
+        padding: 0.4rem 0.75rem;
+    }
+    .table-cards tbody td::before {
+        content: attr(data-label);
+        font-weight: 700;
+        color: hsl(var(--muted-foreground));
+    }
+    .table-cards tbody td[data-label=""]::before,
+    .table-cards tbody td[colspan]::before { content: none; }
+}
+
+/* Simple prose for AI markdown */
+.prose-gov h1 { font-family: var(--font-head); font-size: 1.5rem; font-weight: 800; margin: 1rem 0 0.5rem; }
+.prose-gov h2 { font-family: var(--font-head); font-size: 1.15rem; font-weight: 700; margin: 1.25rem 0 0.5rem; color: hsl(var(--primary)); }
+.prose-gov h3 { font-family: var(--font-head); font-size: 1rem; font-weight: 700; margin: 1rem 0 0.4rem; }
+.prose-gov p { margin: 0.5rem 0; line-height: 1.7; }
+.prose-gov ul { list-style: disc; padding-left: 1.5rem; margin: 0.5rem 0; }
+.prose-gov ol { list-style: decimal; padding-left: 1.5rem; margin: 0.5rem 0; }
+.prose-gov li { margin: 0.25rem 0; line-height: 1.6; }
+.prose-gov strong { font-weight: 700; }
+.prose-gov table { width: 100%; border-collapse: collapse; margin: 0.75rem 0; font-size: 0.9rem; }
+.prose-gov th, .prose-gov td { border: 1px solid hsl(var(--border)); padding: 0.4rem 0.6rem; text-align: left; }
+.prose-gov th { background: hsl(var(--secondary)); font-weight: 700; }
+.prose-gov hr { border: 0; border-top: 1px solid hsl(var(--border)); margin: 1rem 0; }
+
+/* ---- Aksesibilitas: bahasa mudah ---- */
+html.a11y-easy body { line-height: 1.7; }
+
+/* Mode teks besar: utilitas ukuran tetap (px) ikut naik agar tidak ada teks
+   yang tertinggal kecil saat html diperbesar (WCAG 1.4.4). */
+html.a11y-large [class*="text-[10px]"],
+html.a11y-large [class*="text-[11px]"] { font-size: 0.7rem; }
+html.a11y-xlarge [class*="text-[10px]"],
+html.a11y-xlarge [class*="text-[11px]"] { font-size: 0.72rem; }

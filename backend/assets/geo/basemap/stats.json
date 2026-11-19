@@ -1,0 +1,677 @@
+{
+ "generated_at": "2026-09-09T05:34:24.284580+00:00",
+ "sumber": "Peta Dasar Kota Makassar Edisi 2021 (BIG) — PETA_DASAR.gdb",
+ "layers": [
+  {
+   "id": "batas_kelurahan",
+   "label": "Batas Kelurahan (poligon)",
+   "grup": "Batas Administrasi",
+   "tipe": "polygon",
+   "jumlah": 154,
+   "panjang_km": 0.0,
+   "luas_ha": 17758.32,
+   "per_kategori": [
+    {
+     "kategori": "Tallo",
+     "jumlah": 15,
+     "panjang_km": 0.0,
+     "luas_ha": 1062.65
+    },
+    {
+     "kategori": "Makassar",
+     "jumlah": 14,
+     "panjang_km": 0.0,
+     "luas_ha": 265.36
+    },
+    {
+     "kategori": "Mamajang",
+     "jumlah": 13,
+     "panjang_km": 0.0,
+     "luas_ha": 255.56
+    },
+    {
+     "kategori": "Bontoala",
+     "jumlah": 12,
+     "panjang_km": 0.0,
+     "luas_ha": 173.79
+    },
+    {
+     "kategori": "Biringkanaya",
+     "jumlah": 11,
+     "panjang_km": 0.0,
+     "luas_ha": 3733.34
+    },
+    {
+     "kategori": "Tamalate",
+     "jumlah": 11,
+     "panjang_km": 0.0,
+     "luas_ha": 2628.85
+    },
+    {
+     "kategori": "Rappocini",
+     "jumlah": 11,
+     "panjang_km": 0.0,
+     "luas_ha": 1125.22
+    },
+    {
+     "kategori": "Panakkukang",
+     "jumlah": 11,
+     "panjang_km": 0.0,
+     "luas_ha": 1488.17
+    },
+    {
+     "kategori": "Ujung Pandang",
+     "jumlah": 10,
+     "panjang_km": 0.0,
+     "luas_ha": 282.29
+    },
+    {
+     "kategori": "Mariso",
+     "jumlah": 9,
+     "panjang_km": 0.0,
+     "luas_ha": 288.6
+    },
+    {
+     "kategori": "Ujung Tanah",
+     "jumlah": 9,
+     "panjang_km": 0.0,
+     "luas_ha": 136.87
+    },
+    {
+     "kategori": "Manggala",
+     "jumlah": 8,
+     "panjang_km": 0.0,
+     "luas_ha": 2144.43
+    },
+    {
+     "kategori": "Tamalanrea",
+     "jumlah": 8,
+     "panjang_km": 0.0,
+     "luas_ha": 3883.17
+    },
+    {
+     "kategori": "Wajo",
+     "jumlah": 8,
+     "panjang_km": 0.0,
+     "luas_ha": 203.93
+    },
+    {
+     "kategori": "Kepulauan Sangkarrang",
+     "jumlah": 4,
+     "panjang_km": 0.0,
+     "luas_ha": 86.11
+    }
+   ]
+  },
+  {
+   "id": "batas_administrasi_garis",
+   "label": "Garis Batas Administrasi",
+   "grup": "Batas Administrasi",
+   "tipe": "line",
+   "jumlah": 440,
+   "panjang_km": 375.63,
+   "luas_ha": 0.0,
+   "per_kategori": [
+    {
+     "kategori": "Batas Kelurahan",
+     "jumlah": 267,
+     "panjang_km": 214.41,
+     "luas_ha": 0.0
+    },
+    {
+     "kategori": "Batas Kecamatan",
+     "jumlah": 152,
+     "panjang_km": 95.98,
+     "luas_ha": 0.0
+    },
+    {
+     "kategori": "Batas Kabupaten",
+     "jumlah": 21,
+     "panjang_km": 65.25,
+     "luas_ha": 0.0
+    }
+   ]
+  },
+  {
+   "id": "jalan_utama",
+   "label": "Jaringan Jalan Utama",
+   "grup": "Transportasi",
+   "tipe": "line",
+   "jumlah": 980,
+   "panjang_km": 341.08,
+   "luas_ha": 0.0,
+   "per_kategori": [
+    {
+     "kategori": "Jalan Kolektor Sekunder",
+     "jumlah": 371,
+     "panjang_km": 106.4,
+     "luas_ha": 0.0
+    },
+    {
+     "kategori": "Jalan Kolektor Primer",
+     "jumlah": 241,
+     "panjang_km": 78.3,
+     "luas_ha": 0.0
+    },
+    {
+     "kategori": "Jalan Lokal",
+     "jumlah": 231,
+     "panjang_km": 68.67,
+     "luas_ha": 0.0
+    },
+    {
+     "kategori": "Jalan Arteri Primer",
+     "jumlah": 70,
+     "panjang_km": 37.52,
+     "luas_ha": 0.0
+    },
+    {
+     "kategori": "Jalan Arteri Sekunder",
+     "jumlah": 56,
+     "panjang_km": 31.2,
+     "luas_ha": 0.0
+    },
+    {
+     "kategori": "Jalan Tol",
+     "jumlah": 11,
+     "panjang_km": 18.98,
+     "luas_ha": 0.0
+    }
+   ]
+  },
+  {
+   "id": "jalan_lingkungan",
+   "label": "Jalan Lingkungan & Lainnya",
+   "grup": "Transportasi",
+   "tipe": "line",
+   "jumlah": 25965,
+   "panjang_km": 2158.09,
+   "luas_ha": 0.0,
+   "per_kategori": [
+    {
+     "kategori": "Jalan Lingkungan",
+     "jumlah": 24143,
+     "panjang_km": 1909.7,
+     "luas_ha": 0.0
+    },
+    {
+     "kategori": "Jalan Lainnya",
+     "jumlah": 1822,
+     "panjang_km": 248.39,
+     "luas_ha": 0.0
+    }
+   ]
+  },
+  {
+   "id": "badan_jalan",
+   "label": "Badan Jalan Utama (poligon)",
+   "grup": "Transportasi",
+   "tipe": "polygon",
+   "jumlah": 86,
+   "panjang_km": 0.0,
+   "luas_ha": 264.48,
+   "per_kategori": [
+    {
+     "kategori": "Jalan Kolektor Sekunder",
+     "jumlah": 32,
+     "panjang_km": 0.0,
+     "luas_ha": 33.77
+    },
+    {
+     "kategori": "Jalan Lokal",
+     "jumlah": 18,
+     "panjang_km": 0.0,
+     "luas_ha": 30.54
+    },
+    {
+     "kategori": "Jalan Arteri Primer",
+     "jumlah": 14,
+     "panjang_km": 0.0,
+     "luas_ha": 72.25
+    },
+    {
+     "kategori": "Jalan Kolektor Primer",
+     "jumlah": 12,
+     "panjang_km": 0.0,
+     "luas_ha": 34.08
+    },
+    {
+     "kategori": "Jalan Arteri Sekunder",
+     "jumlah": 9,
+     "panjang_km": 0.0,
+     "luas_ha": 46.25
+    },
+    {
+     "kategori": "Jalan Tol",
+     "jumlah": 1,
+     "panjang_km": 0.0,
+     "luas_ha": 47.59
+    }
+   ]
+  },
+  {
+   "id": "jembatan",
+   "label": "Jembatan",
+   "grup": "Transportasi",
+   "tipe": "point",
+   "jumlah": 96,
+   "panjang_km": 0.0,
+   "luas_ha": 0.0,
+   "per_kategori": [
+    {
+     "kategori": "Beton",
+     "jumlah": 96,
+     "panjang_km": 0.0,
+     "luas_ha": 0.0
+    }
+   ]
+  },
+  {
+   "id": "perairan_area",
+   "label": "Perairan (poligon)",
+   "grup": "Perairan",
+   "tipe": "polygon",
+   "jumlah": 19,
+   "panjang_km": 0.0,
+   "luas_ha": 2468.65,
+   "per_kategori": [
+    {
+     "kategori": "Sungai",
+     "jumlah": 6,
+     "panjang_km": 0.0,
+     "luas_ha": 602.94
+    },
+    {
+     "kategori": "Saluran Air",
+     "jumlah": 5,
+     "panjang_km": 0.0,
+     "luas_ha": 62.69
+    },
+    {
+     "kategori": "Kanal",
+     "jumlah": 2,
+     "panjang_km": 0.0,
+     "luas_ha": 25.44
+    },
+    {
+     "kategori": "Danau",
+     "jumlah": 1,
+     "panjang_km": 0.0,
+     "luas_ha": 33.63
+    },
+    {
+     "kategori": "Kolam",
+     "jumlah": 1,
+     "panjang_km": 0.0,
+     "luas_ha": 2.0
+    },
+    {
+     "kategori": "Laut",
+     "jumlah": 1,
+     "panjang_km": 0.0,
+     "luas_ha": 25.78
+    },
+    {
+     "kategori": "Rawa",
+     "jumlah": 1,
+     "panjang_km": 0.0,
+     "luas_ha": 302.86
+    },
+    {
+     "kategori": "Tambak",
+     "jumlah": 1,
+     "panjang_km": 0.0,
+     "luas_ha": 1379.26
+    },
+    {
+     "kategori": "Waduk",
+     "jumlah": 1,
+     "panjang_km": 0.0,
+     "luas_ha": 34.05
+    }
+   ]
+  },
+  {
+   "id": "perairan_garis",
+   "label": "Sungai & Kanal (garis)",
+   "grup": "Perairan",
+   "tipe": "line",
+   "jumlah": 81,
+   "panjang_km": 187.3,
+   "luas_ha": 0.0,
+   "per_kategori": [
+    {
+     "kategori": "Sungai",
+     "jumlah": 32,
+     "panjang_km": 115.86,
+     "luas_ha": 0.0
+    },
+    {
+     "kategori": "Kanal",
+     "jumlah": 29,
+     "panjang_km": 46.92,
+     "luas_ha": 0.0
+    },
+    {
+     "kategori": "Alur Sungai",
+     "jumlah": 19,
+     "panjang_km": 21.61,
+     "luas_ha": 0.0
+    },
+    {
+     "kategori": "Saluran Air",
+     "jumlah": 1,
+     "panjang_km": 2.91,
+     "luas_ha": 0.0
+    }
+   ]
+  },
+  {
+   "id": "garis_pantai",
+   "label": "Garis Pantai",
+   "grup": "Perairan",
+   "tipe": "line",
+   "jumlah": 53,
+   "panjang_km": 72.64,
+   "luas_ha": 0.0,
+   "per_kategori": [
+    {
+     "kategori": "Garis Pantai",
+     "jumlah": 49,
+     "panjang_km": 71.53,
+     "luas_ha": 0.0
+    },
+    {
+     "kategori": "Garis Penutup Sungai",
+     "jumlah": 4,
+     "panjang_km": 1.1,
+     "luas_ha": 0.0
+    }
+   ]
+  },
+  {
+   "id": "garis_pantai_rencana",
+   "label": "Garis Pantai Rencana (reklamasi)",
+   "grup": "Perairan",
+   "tipe": "line",
+   "jumlah": 11,
+   "panjang_km": 36.55,
+   "luas_ha": 0.0,
+   "per_kategori": [
+    {
+     "kategori": "Semua",
+     "jumlah": 11,
+     "panjang_km": 36.55,
+     "luas_ha": 0.0
+    }
+   ]
+  },
+  {
+   "id": "kontur",
+   "label": "Kontur (interval 10 m)",
+   "grup": "Topografi",
+   "tipe": "line",
+   "jumlah": 1817,
+   "panjang_km": 428.01,
+   "luas_ha": 0.0,
+   "per_kategori": [
+    {
+     "kategori": "10",
+     "jumlah": 1550,
+     "panjang_km": 366.44,
+     "luas_ha": 0.0
+    },
+    {
+     "kategori": "20",
+     "jumlah": 256,
+     "panjang_km": 60.59,
+     "luas_ha": 0.0
+    },
+    {
+     "kategori": "30",
+     "jumlah": 11,
+     "panjang_km": 0.98,
+     "luas_ha": 0.0
+    }
+   ]
+  },
+  {
+   "id": "penutup_lahan",
+   "label": "Penutup Lahan",
+   "grup": "Penutup Lahan",
+   "tipe": "polygon",
+   "jumlah": 2993,
+   "panjang_km": 0.0,
+   "luas_ha": 17758.32,
+   "per_kategori": [
+    {
+     "kategori": "Tempat Kegiatan",
+     "jumlah": 891,
+     "panjang_km": 0.0,
+     "luas_ha": 3349.5
+    },
+    {
+     "kategori": "Tanah Terbuka",
+     "jumlah": 552,
+     "panjang_km": 0.0,
+     "luas_ha": 1186.35
+    },
+    {
+     "kategori": "Semak Belukar",
+     "jumlah": 530,
+     "panjang_km": 0.0,
+     "luas_ha": 1222.55
+    },
+    {
+     "kategori": "Permukiman",
+     "jumlah": 446,
+     "panjang_km": 0.0,
+     "luas_ha": 6637.09
+    },
+    {
+     "kategori": "Rawa",
+     "jumlah": 130,
+     "panjang_km": 0.0,
+     "luas_ha": 302.86
+    },
+    {
+     "kategori": "Tegalan",
+     "jumlah": 123,
+     "panjang_km": 0.0,
+     "luas_ha": 1092.21
+    },
+    {
+     "kategori": "RTH",
+     "jumlah": 84,
+     "panjang_km": 0.0,
+     "luas_ha": 224.04
+    },
+    {
+     "kategori": "Sawah",
+     "jumlah": 57,
+     "panjang_km": 0.0,
+     "luas_ha": 1246.73
+    },
+    {
+     "kategori": "Tambak",
+     "jumlah": 45,
+     "panjang_km": 0.0,
+     "luas_ha": 1379.26
+    },
+    {
+     "kategori": "Permukaan Diperkeras",
+     "jumlah": 39,
+     "panjang_km": 0.0,
+     "luas_ha": 97.87
+    },
+    {
+     "kategori": "Sungai",
+     "jumlah": 26,
+     "panjang_km": 0.0,
+     "luas_ha": 438.66
+    },
+    {
+     "kategori": "Kebun Campuran",
+     "jumlah": 15,
+     "panjang_km": 0.0,
+     "luas_ha": 14.45
+    },
+    {
+     "kategori": "Danau",
+     "jumlah": 13,
+     "panjang_km": 0.0,
+     "luas_ha": 33.63
+    },
+    {
+     "kategori": "Kanal",
+     "jumlah": 10,
+     "panjang_km": 0.0,
+     "luas_ha": 20.81
+    },
+    {
+     "kategori": "Laut",
+     "jumlah": 9,
+     "panjang_km": 0.0,
+     "luas_ha": 25.78
+    },
+    {
+     "kategori": "Saluran Air",
+     "jumlah": 8,
+     "panjang_km": 0.0,
+     "luas_ha": 58.19
+    },
+    {
+     "kategori": "Hutan",
+     "jumlah": 4,
+     "panjang_km": 0.0,
+     "luas_ha": 65.14
+    },
+    {
+     "kategori": "Kolam",
+     "jumlah": 4,
+     "panjang_km": 0.0,
+     "luas_ha": 2.0
+    },
+    {
+     "kategori": "Pertambangan",
+     "jumlah": 3,
+     "panjang_km": 0.0,
+     "luas_ha": 7.39
+    },
+    {
+     "kategori": "Tempat Penimbunan dan Pembuangan Sampah",
+     "jumlah": 1,
+     "panjang_km": 0.0,
+     "luas_ha": 20.2
+    },
+    {
+     "kategori": "Waduk",
+     "jumlah": 1,
+     "panjang_km": 0.0,
+     "luas_ha": 34.05
+    },
+    {
+     "kategori": "Jalan",
+     "jumlah": 1,
+     "panjang_km": 0.0,
+     "luas_ha": 260.78
+    },
+    {
+     "kategori": "Padang Golf",
+     "jumlah": 1,
+     "panjang_km": 0.0,
+     "luas_ha": 38.76
+    }
+   ]
+  },
+  {
+   "id": "toponimi",
+   "label": "Toponimi / Fasilitas Umum",
+   "grup": "Toponimi",
+   "tipe": "point",
+   "jumlah": 1571,
+   "panjang_km": 0.0,
+   "luas_ha": 0.0,
+   "per_kategori": [
+    {
+     "kategori": "Peribadatan",
+     "jumlah": 629,
+     "panjang_km": 0.0,
+     "luas_ha": 0.0
+    },
+    {
+     "kategori": "Pendidikan dan IPTEK",
+     "jumlah": 389,
+     "panjang_km": 0.0,
+     "luas_ha": 0.0
+    },
+    {
+     "kategori": "Permukiman",
+     "jumlah": 163,
+     "panjang_km": 0.0,
+     "luas_ha": 0.0
+    },
+    {
+     "kategori": "Pemerintahan",
+     "jumlah": 161,
+     "panjang_km": 0.0,
+     "luas_ha": 0.0
+    },
+    {
+     "kategori": "Kesehatan",
+     "jumlah": 53,
+     "panjang_km": 0.0,
+     "luas_ha": 0.0
+    },
+    {
+     "kategori": "Pemakaman",
+     "jumlah": 42,
+     "panjang_km": 0.0,
+     "luas_ha": 0.0
+    },
+    {
+     "kategori": "Toponim Pariwisata, Seni dan Budaya",
+     "jumlah": 31,
+     "panjang_km": 0.0,
+     "luas_ha": 0.0
+    },
+    {
+     "kategori": "Pertahanan dan Keamanan",
+     "jumlah": 29,
+     "panjang_km": 0.0,
+     "luas_ha": 0.0
+    },
+    {
+     "kategori": "Sarana Kesehatan",
+     "jumlah": 27,
+     "panjang_km": 0.0,
+     "luas_ha": 0.0
+    },
+    {
+     "kategori": "Transportasi",
+     "jumlah": 20,
+     "panjang_km": 0.0,
+     "luas_ha": 0.0
+    },
+    {
+     "kategori": "Perekonomian dan Perdagangan",
+     "jumlah": 19,
+     "panjang_km": 0.0,
+     "luas_ha": 0.0
+    },
+    {
+     "kategori": "Sosial",
+     "jumlah": 6,
+     "panjang_km": 0.0,
+     "luas_ha": 0.0
+    },
+    {
+     "kategori": "Pariwisata, Seni, dan Budaya",
+     "jumlah": 2,
+     "panjang_km": 0.0,
+     "luas_ha": 0.0
+    }
+   ]
+  }
+ ]
+}

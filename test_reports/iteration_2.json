@@ -1,0 +1,38 @@
+{
+  "summary": "Retest of iteration_1 fixes for SIDATA Bappeda Makassar. Backend: 36/36 pytest cases pass against the PUBLIC URL, including new SSE streaming tests for POST /api/ai/analyze (all 5 kategori city-wide + per-kecamatan Tallo), ObjectId guards, petugas wilayah scoping (403/200), and register role-escalation guard. Frontend: /analisa-ai city-wide streams progressively (first content <5s, 4 markdown h2 rendered, elapsed timer during load, ai-speak appears after done), simulated 500 shows ai-error + ai-retry-btn and retry succeeds for Kecamatan Tallo. Regression pass: Dashboard 6 KPI + 16 charts, Peta 15 markers + region-detail + 5 category buttons + ranking, Aksesibilitas Tunanetra/Tunarungu cards + POST /api/tts 200, admin login -> nav-input -> DataEntry PUT 200 + success toast + restore, logout hides nav-input, a11y toggles apply a11y-large/a11y-contrast/a11y-reduce-motion classes. No blockers found.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "POST /api/ai/analyze", "issue": "SSE stream always returns HTTP 200 even when the LLM call fails (error is emitted as a 'data: {\"error\":...}' event). Acceptable for SSE, but clients must parse the error event - documented; frontend handles it."},
+      {"endpoint": "POST /api/auth/register", "issue": "Still publicly open (role is correctly downgraded to petugas, verified downgraded user gets 403 editing another kecamatan). Test-created user TEST_qa_*@example.com remains in DB - no delete endpoint exists for cleanup."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "Toaster / Header", "issue": "Sonner toast (top-right) overlaps the header 'Masuk Petugas' / user+Keluar area, briefly covering those controls.", "selector": "[data-testid=\"logout-btn\"]", "priority": "LOW"},
+      {"component": "Landing feature cards", "issue": "Still no data-testid on the 4 'Fitur Utama' cards (carried over from iteration_1).", "selector": "n/a", "priority": "LOW"}
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Console (/analisa-ai and others)", "issues": ["Recurring React dev warning: '<span> cannot be a child of <option> ... hydration error' from the dev instrumentation wrapper; non-blocking.", "Expected 401 on /api/auth/me for public visitors logged as console errors."]}
+    ]
+  },
+  "test_report_links": ["/app/backend/tests/backend_test.py", "/app/test_reports/pytest/pytest_results.xml"],
+  "action_items": [
+    "Optional: restrict POST /api/auth/register to admins (role escalation is fixed, but self-signup is still open) and add cleanup/delete for users.",
+    "Optional: offset the toast container so it does not overlap the header login/logout controls."
+  ],
+  "critical_code_review_comments": [
+    "server.py ai_analyze: DB insert of the full result is wrapped in a bare 'except Exception: pass' - failures are silently swallowed; log at warning level.",
+    "server.py still uses deprecated @app.on_event('startup'/'shutdown'); migrate to lifespan handlers.",
+    "AIAnalysis.js: the catch block collapses all failures into one generic Indonesian message; consider surfacing the SSE 'error' payload for diagnosability."
+  ],
+  "updated_files": ["/app/backend/tests/backend_test.py"],
+  "success_rate": {"backend": "100% (36/36)", "frontend": "100% of tested flows"},
+  "seed_data_creation": "One registration test user TEST_qa_<random>@example.com (role downgraded to petugas) created per run of TestRegister; cannot be deleted (no endpoint). Region values (Mariso/Tallo anak_jalanan & stunting_anak) modified and restored, verified via GET.",
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_self_test": true,
+  "test_credentials": "admin@bappeda.makassarkota.go.id / <TEST_ADMIN_PASSWORD> (admin), petugas.tallo@makassarkota.go.id / <TEST_PETUGAS_PASSWORD> (petugas, wilayah Tallo) - both verified",
+  "context_for_next_testing_agent": "Run: cd /app/backend && python -m pytest tests/backend_test.py -q. AI endpoint is SSE - use the consume_sse() helper in backend_test.py (aggregates 'delta' events, expects 'done'). Frontend testids verified: ai-page, ai-kategori, ai-wilayah, ai-analyze-btn, ai-result, ai-error, ai-retry-btn, ai-speak; map-page, map-cat-<field> are BUTTONS (not a select) inside div[data-testid=map-category-selector], region-detail, map-ranking; login-email/password/submit, nav-input, field-<key>, save-btn, logout-btn; a11y-text-size/contrast-toggle/motion-toggle. Marker click target: '.leaflet-container path.leaflet-interactive'.",
+  "rca_of_the_issue": "Previous 502 root cause (60s ingress cutoff on a single long AI response) is resolved by StreamingResponse SSE with X-Accel-Buffering: no - first bytes arrive in ~2-5s so the ingress keeps the connection open; verified via the public URL for all 5 kategori and per-kecamatan. The 2 test failures in this iteration's first run were test-code defects (invalid .test email domain and wrong field name 'nama' instead of 'name' in the register payload) and were fixed in backend_test.py."
+}

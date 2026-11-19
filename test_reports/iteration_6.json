@@ -1,0 +1,81 @@
+{
+  "summary": "Completed comprehensive E2E testing of PETA INKLUSI transformation. All 33 backend API tests passed (100%). Frontend testing verified public routes, login flows, NGO RBAC, admin dashboard, and operator access restrictions. All critical features working correctly.",
+  "backend_issues": {
+    "critical_bugs": [],
+    "flaky_endpoints": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "passed_tests": [
+    "Backend: All 11 public API endpoints return 200 without auth and NO personal data (nik, nama, alamat, email, telepon)",
+    "Backend: GET /api/public/summary - aggregated stats for 4 categories (Disabilitas, Stunting, ATS, Kemiskinan)",
+    "Backend: GET /api/public/map/{kategori}?level=kecamatan - all 4 categories return kecamatan-level data",
+    "Backend: GET /api/public/map/{kategori}?level=kelurahan - Disabilitas, Stunting, Kemiskinan return kelurahan data",
+    "Backend: GET /api/public/stunting/breakdown - aggregated breakdown without personal data",
+    "Backend: GET /api/public/ats - ATS data per kecamatan",
+    "Backend: GET /api/public/wilayah - Kota Makassar with 15 kecamatan list",
+    "Backend: Login flows - Superadmin, Operator, NGO all login successfully",
+    "Backend: NGO registration creates pending account, cannot login until admin approves",
+    "Backend: Admin can approve NGO via PATCH /api/admin/users/{id}/status",
+    "Backend: NGO RBAC - blocked from /api/sosial/households and /api/inklusi/stunting/children (401/403)",
+    "Backend: NGO can access public APIs and inquiry APIs",
+    "Backend: NGO inquiry creation - POST /api/inquiries creates inquiry with status SUBMITTED",
+    "Backend: Admin can change inquiry status through workflow (SUBMITTED → UNDER_REVIEW → VERIFICATION → APPROVED)",
+    "Backend: Inquiry riwayat tracks all status changes",
+    "Backend: Data masking - Operator sees masked=true, Superadmin sees masked=false",
+    "Backend: Operator sees masked names in stunting children data (contains *)",
+    "Backend: Admin overview - GET /api/inklusi/admin/overview returns totals, NGO stats, inquiry stats",
+    "Backend: Audit logs - Admin can access, Operator blocked (403)",
+    "Backend: Regression - All existing endpoints (/regions, /kelurahan, /stats/overview, /trends/poverty, /trends/stunting, /categories) still work",
+    "Frontend: Landing page (/) loads with PETA INKLUSI branding and 4 category cards (Disabilitas, Stunting, Kemiskinan, ATS)",
+    "Frontend: Public dashboard (/publik) shows aggregated stats with charts for all 4 categories",
+    "Frontend: Public Peta Sosial (/publik/peta-sosial) loads with Leaflet map and level switcher (Kecamatan/Kelurahan)",
+    "Frontend: Public Peta Kemiskinan (/publik/peta-kemiskinan) loads with choropleth map",
+    "Frontend: Flow Sistem (/flow-sistem) loads with next/prev navigation buttons",
+    "Frontend: Tentang page (/tentang) loads with PETA INKLUSI information",
+    "Frontend: Login page has 3 tabs - Masuk, Daftar NGO (data-testid=auth-tab-ngo), Daftar Petugas",
+    "Frontend: /login?mode=ngo opens NGO tab directly",
+    "Frontend: Admin login redirects to /dashboard with Admin Overview (not legacy dashboard)",
+    "Frontend: Admin sidebar includes Peta Sosial, Peta Kemiskinan, Data Stunting, Data ATS, NGO Inquiry, Audit Log",
+    "Frontend: Admin sidebar does NOT have 'Peta Rumah' label (correctly renamed to Peta Kemiskinan)",
+    "Frontend: Peta Kemiskinan page has 2 tabs - Wilayah (data-testid=kemiskinan-tab-wilayah) and Bangunan (data-testid=kemiskinan-tab-bangunan)",
+    "Frontend: /peta redirects to /peta-kemiskinan",
+    "Frontend: Audit Log page (/audit-log) loads for admin with audit table showing login events, inquiry actions",
+    "Frontend: NGO login redirects to /ngo/inquiry (Status Inquiry Saya)",
+    "Frontend: NGO sidebar only shows NGO menu items (Status Inquiry Saya, Ajukan Inquiry, Peta Sosial, Peta Kemiskinan, Statistik Agregat, Mode Aksesibilitas, Flow Sistem)",
+    "Frontend: NGO RBAC - accessing /rumah-tangga, /data-stunting, /dashboard all redirect to /ngo/inquiry",
+    "Frontend: NGO inquiry form (/ngo/inquiry/baru) loads with all required fields (nama NGO, PIC, email, telepon, kecamatan, kategori, permasalahan, etc.)",
+    "Frontend: NGO can access Peta Sosial and Peta Kemiskinan with maps",
+    "Frontend: NGO inquiry list shows existing inquiries with status (e.g., INQ-2026-0002 with status 'Disetujui')",
+    "Frontend: Operator blocked from /audit-log (redirects away)"
+  ],
+  "test_report_links": [
+    "/app/tests/test_peta_inklusi_backend.py",
+    ".screenshots/landing_page.png",
+    ".screenshots/public_dashboard.png",
+    ".screenshots/public_peta_sosial.png",
+    ".screenshots/public_peta_kemiskinan.png",
+    ".screenshots/flow_sistem.png",
+    ".screenshots/tentang_page.png",
+    ".screenshots/login_page_default.png",
+    ".screenshots/login_ngo_tab.png",
+    ".screenshots/admin_dashboard.png",
+    ".screenshots/peta_kemiskinan_admin.png",
+    ".screenshots/audit_log_admin.png",
+    ".screenshots/ngo_dashboard.png",
+    ".screenshots/ngo_inquiry_form.png"
+  ],
+  "action_item_for_main_agent": "",
+  "updated_files": [
+    "/app/tests/test_peta_inklusi_backend.py"
+  ],
+  "success_percentage": {
+    "backend": "100% (33/33 tests passed)",
+    "frontend": "100% (all critical UI flows verified)"
+  },
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_test_itself": false
+}
