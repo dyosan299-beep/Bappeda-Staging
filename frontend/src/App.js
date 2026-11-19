@@ -48,16 +48,11 @@ import BisindoSettings from "@/features/a11y/BisindoSettings";
 import { VervalBeranda, VervalForm } from "@/pages/VervalOperator";
 import VervalReview from "@/pages/VervalReview";
 import VervalPenugasan from "@/pages/VervalPenugasan";
-
-// Petugas (lapangan RT/RW) & Operator RT/RW: BUKAN pengguna internal umum — hanya data publik + Verval/GeoTag.
-const INTERNAL = ["superadmin", "admin", "verifikator", "admin_bappeda", "operator",
-  "pimpinan", "admin_opd", "operator_kecamatan", "operator_kelurahan", "viewer"];
-const ADMINS = ["superadmin", "admin", "verifikator", "admin_bappeda"];
-const VERVAL_OPERATOR_ROLES = ["operator_rt_rw", "petugas"];
-// Hasil Verval dapat DILIHAT oleh verifikator, admin bappeda, superadmin, dan pimpinan (read-only)
-const VERVAL_REVIEWER_ROLES = ["verifikator", "admin_bappeda", "superadmin", "admin", "pimpinan"];
-const VERVAL_PENUGASAN_ROLES = ["superadmin", "admin", "admin_bappeda"];
-const USER_MANAGER_ROLES = ["superadmin", "admin", "operator"];
+import {
+  ADMINS, INTERNAL, USER_MANAGERS as USER_MANAGER_ROLES,
+  VERVAL_OPERATOR as VERVAL_OPERATOR_ROLES, VERVAL_PENUGASAN as VERVAL_PENUGASAN_ROLES,
+  VERVAL_REVIEWER as VERVAL_REVIEWER_ROLES,
+} from "@/constants/roles";
 
 /** Halaman awal sesuai peran (dipakai untuk pengalihan). */
 export function homeFor(role) {
@@ -206,7 +201,7 @@ function App() {
               <Route
                 path="/input-data"
                 element={
-                  <ProtectedRoute roles={["superadmin", "admin", "operator"]}>
+                  <ProtectedRoute roles={["superadmin", "admin", "operator", "operator_kecamatan"]}>
                     <AppShell><DataEntry /></AppShell>
                   </ProtectedRoute>
                 }

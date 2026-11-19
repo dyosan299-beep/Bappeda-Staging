@@ -78,6 +78,9 @@ export function SidebarLayout({ children }) {
       const rt = Array.isArray(user.rt) && user.rt.length ? ` / RT ${user.rt.join(",")}` : "";
       return `${user.kelurahan} · RW ${user.rw || "-"}${rt}`;
     }
+    if (user.role === "operator_kelurahan" && user.kelurahan) {
+      return `Kel. ${user.kelurahan} · Kec. ${wil}`;
+    }
     return `Kec. ${wil}`;
   }, [user]);
   const fullBleed = FULL_BLEED.includes(location.pathname);

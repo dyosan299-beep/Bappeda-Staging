@@ -17,9 +17,9 @@ import os
 import shutil
 import uuid
 from pathlib import Path
-from typing import Optional, Tuple
+from typing import List, Optional, Tuple
 
-from PIL import Image, ImageOps
+from PIL import Image, ImageDraw, ImageFont, ImageOps
 
 ALLOWED_FORMATS = {"JPEG", "PNG", "WEBP", "MPO"}
 MAX_PIXELS = 40_000_000
@@ -96,7 +96,51 @@ def exif_gps(data: bytes) -> Optional[dict]:
         return None
 
 
-def process_image(data: bytes, max_mb: int) -> Tuple[bytes, int, int]:
+def _load_font(size: int):
+    for name in (
+        "DejaVuSans-Bold.ttf",
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+        "arialbd.ttf",
+        "arial.ttf",
+    ):
+        try:
+            return ImageFont.truetype(name, size=size)
+        except Exception:  # noqa: BLE001
+            continue
+    try:
+        return ImageFont.load_default(size=size)
+    except TypeError:
+        return ImageFont.load_default()
+
+
+def _apply_watermark(im: Image.Image, lines: List[str]) -> Image.Image:
+    clean_lines = [str(x).strip() for x in (lines or []) if str(x or "").strip()]
+    if not clean_lines:
+        return im
+    base = im.convert("RGBA")
+    overlay = Image.new("RGBA", base.size, (0, 0, 0, 0))
+    draw = ImageDraw.Draw(overlay)
+    font_size = max(13, min(28, int(im.width * 0.022)))
+    if im.height < 200:
+        font_size = max(10, min(font_size, max(10, im.height // (len(clean_lines) + 2))))
+    font = _load_font(font_size)
+    line_h = int(font_size * 1.38)
+    pad_y = max(6, int(font_size * 0.65))
+    pad_x = max(10, int(font_size * 0.85))
+    bar_h = min(im.height, pad_y * 2 + line_h * len(clean_lines))
+    y0 = max(0, im.height - bar_h)
+    draw.rectangle([(0, y0), (im.width, im.height)], fill=(20, 30, 44, 195))
+    stripe_w = min(6, max(3, im.width // 60))
+    draw.rectangle([(0, y0), (stripe_w, im.height)], fill=(111, 227, 207, 255))
+    text_x = stripe_w + pad_x
+    for idx, line in enumerate(clean_lines):
+        color = (111, 227, 207, 255) if idx == 0 else (255, 255, 255, 255)
+        draw.text((text_x, y0 + pad_y + idx * line_h), line, fill=color, font=font)
+    return Image.alpha_composite(base, overlay).convert("RGB")
+
+
+def process_image(data: bytes, max_mb: int, watermark_lines: Optional[List[str]] = None) -> Tuple[bytes, int, int]:
     if not data:
         raise StorageError(400, "Berkas foto kosong")
     if len(data) > max_mb * 1024 * 1024:
@@ -115,9 +159,11 @@ def process_image(data: bytes, max_mb: int) -> Tuple[bytes, int, int]:
     try:
         im = Image.open(io.BytesIO(data))
         im = ImageOps.exif_transpose(im)
-        if im.mode not in ("RGB", "L"):
+        if im.mode != "RGB":
             im = im.convert("RGB")
         im.thumbnail((MAX_SIDE, MAX_SIDE))
+        if watermark_lines:
+            im = _apply_watermark(im, watermark_lines)
         out = io.BytesIO()
         im.save(out, format="JPEG", quality=85, optimize=True)  # metadata EXIF tidak ikut
         return out.getvalue(), im.width, im.height

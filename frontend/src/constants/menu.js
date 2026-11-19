@@ -36,7 +36,7 @@ export const MENU = [
     id: "pendataan",
     label: "Pendataan Warga",
     items: [
-      { to: "/input-data", label: "Input Data", icon: "edit", roles: ["superadmin", "admin", "operator"], testid: "nav-data" },
+      { to: "/input-data", label: "Input Data", icon: "edit", roles: ["superadmin", "admin", "operator", "operator_kecamatan"], testid: "nav-data" },
       { to: "/rumah-tangga", label: "Data Rumah Tangga", icon: "edit", roles: INTERNAL, testid: "nav-rumah-tangga" },
       { to: "/peta-rumah", label: "Data Rumah/Bangunan", icon: "home", roles: INTERNAL, testid: "nav-peta-rumah" },
       { to: "/sosial", label: "Data Kemiskinan", icon: "users", roles: INTERNAL, testid: "nav-sosial" },
